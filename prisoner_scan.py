@@ -49,8 +49,9 @@ def calc_decoy_pos(leading_deg, dist_psd):
     
     return (box_x1, box_y1, box_x2, box_y2)
 
-def scan(gQuit, grobotList):
+def scan(gQuit, grobotList, vWorld):
     print "Scanning for decoy!"
+    print 'vWorld canvas_height', vWorld.canvas_height
     
     
     #set max length of data that will be low pass filtered
@@ -75,6 +76,8 @@ def scan(gQuit, grobotList):
     
     #set timer for servo
     deg_timer = time.time() + period
+    #set timer that allows sensor values to stablize before detection
+    stablize_timer = time.time() + 2
     
     #define scan result list
     scan_result = []
@@ -82,27 +85,28 @@ def scan(gQuit, grobotList):
 
     #scan
     while (not gQuit):
-            robot = grobotList[0]
-            
-            #rotate servo
-            deg = rotate_servo(deg_timer, dir, delta, deg, period, robot)[0]
-            deg_timer = rotate_servo(deg_timer, dir, delta, deg, period, robot)[1]
-            
-            psd_value = read_psd_distance(robot) #implement
-            mag = 255 - psd_value;
-            psd_list.append(mag)
-            
-            #initialize list; add value if only one element
-            if len(psd_list) < max_len:
-                while len(psd_list) <= (max_len - 1):
-                    psd_list.append(mag)
-            
-            #low pass filter the data, return deque
-            lpf_mag = low_pass(psd_list, max_len)
-            
-            print deg, lpf_mag[max_len - 1]
-            
-            #detect leading edge of object
+        robot = grobotList[0]
+        
+        #rotate servo
+        deg = rotate_servo(deg_timer, dir, delta, deg, period, robot)[0]
+        deg_timer = rotate_servo(deg_timer, dir, delta, deg, period, robot)[1]
+        
+        psd_value = read_psd_distance(robot) #implement
+        mag = 255 - psd_value;
+        psd_list.append(mag)
+        
+        #initialize list; add value if only one element
+        if len(psd_list) < max_len:
+            while len(psd_list) <= (max_len - 1):
+                psd_list.append(mag)
+        
+        #low pass filter the data, return deque
+        lpf_mag = low_pass(psd_list, max_len)
+        
+        print deg, lpf_mag[max_len - 1]
+        
+        #detect leading edge of object
+        if time.time() > stablize_timer:
             if all(val <= threshold for val in lpf_mag):
                 print 'OBJECT!'
                 print lpf_mag
@@ -139,11 +143,20 @@ def scan(gQuit, grobotList):
                     deg = rotate_servo(deg_timer, dir, delta, deg, period, robot)[0]
                     deg_timer = rotate_servo(deg_timer, dir, delta, deg, period, robot)[1]
                 
-                scan_result = [decoy_coord[0], decoy_coord[1], decoy_coord[2], decoy_coord[3]]   
+                #draw decoy on map
+                scan_result.extend([decoy_coord[0], decoy_coord[1], decoy_coord[2], decoy_coord[3]])   
+                vWorld.add_obstacle(scan_result)
+                vWorld.draw_map('blue')
+                break
+            
+            #handle case where no decoy is in place
+            if deg == 0 and not scan_result:
+                print "Sorry prisoner, you're out of luck dude. There is no decoy."
+                scan_result.append('no_decoy')
                 break
                 
             
-            time.sleep(.001)
+        time.sleep(.01)
     
     print "scan complete"
     return scan_result

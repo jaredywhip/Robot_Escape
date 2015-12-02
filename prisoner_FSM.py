@@ -4,8 +4,8 @@ import Tkinter as tk
 import Queue
 import random
 from HamsterAPI.comm_ble import RobotComm
-import final_GUI as gui
-import prisoner_motionpath as pris_mp
+import final_draw as draw
+import prisoner_path as pris_path
 import prisoner_scan as pris_scan
 #from final_settings import *#file that contains global variables
 
@@ -27,7 +27,14 @@ class State:
 
     def add_transition(self, toState, callback):
       self.transitions[toState] = callback
-
+      
+    def add_callback_args(self, args): #args in tuple format
+      self.callback_args = args
+      
+    #store variables from each state, return_vars should be list format 
+    def add_return_vars(self, return_vars):
+      self.return_vars = return_vars 
+    
 class EventFsm:
     def __init__(self):
         self.states = {}
@@ -45,7 +52,7 @@ class EventFsm:
 
     def set_current(self, name):
         self.currentState = name
-
+  
     #thread to run FSM
     def run(self):
       while not gQuit:
@@ -53,32 +60,41 @@ class EventFsm:
           event = event_queue.get()
           print 'event', event.name
           if event.name in self.states[self.currentState].transitions:
-            self.states[self.currentState].transitions[event.name]()
+            self.states[self.currentState].transitions[event.name](self.states[self.currentState].callback_args)
             self.set_current(event.name)
-        time.sleep(1)
+        time.sleep(.1)
 
 def init_to_scan(vWorld):
   #print pris_fsm.currentState
-  print pris_fsm.currentState
+  print pris_fsm.states["scan"].transitions
   print "transition init -> scan"
+   
   
   #start scanning
   scan_result = []
   #while pris_fsm.currentState == "init": #state update comes after function call
   while len(scan_result) == 0: #state update comes after function call
     scan_result = pris_scan.scan(gQuit, grobotList, vWorld)
-   
     time.sleep(.01)
-  print 'scan result', scan_result
   
-  #exit
+  time.sleep(1)
+  pris_fsm.states["scan"].add_return_vars(scan_result)
+  print 'scan result', pris_fsm.states["scan"].return_vars[0]
+    
+  #transition to next state
+  if not (pris_fsm.states["scan"].return_vars[0] == 'no_decoy'):
+    event_queue.put(Event("path"))
+  else:
+    event_queue.put(Event("end"))
+    
 
   
-def foo_to_baz():
-  print "transition foo -> baz" 
+def scan_to_path(vWorld):
+  print "transition scan -> path" 
 
-def bar_to_foo():
-  print "transition bar -> foo"
+def scan_to_end(vWorld):
+  print "transition scan -> end"
+  gQuit = True
 
 def baz_to_bar():
   print "transition baz -> bar"
@@ -94,25 +110,45 @@ def fee_to_foo():
 
 #thread to monitor events
 def monitor_events():
-  #global event_queue
-  events = ["init", "scan", "baz", "fee"]
-  
+  start = True
   while not gQuit:
     #when the correct number of hamsters are connect start program
-    print "length grobotList", len(grobotList)
-    if len(grobotList) == gMaxRobotNum:
+    if start == True and len(grobotList) == gMaxRobotNum:
       event_queue.put(Event("scan"))
-    #event = Event(random.choice(events))
-    #event_queue.put(event)
-    time.sleep(1)
+      start = False
+      
+      
+    ##transition to next state
+    #if pris_fsm.states["scan"].return_vars:
+    #  if not (pris_fsm.states["scan"].return_vars[0] == 'no_decoy'):
+    #    event_queue.put(Event("push"))
+    #  else:
+    #    event_queue.put(Event("end"))
 
-def build_states(pris_fsm):
+    time.sleep(.01)
+
+def build_states(pris_fsm, vWorld):
   state_init = pris_fsm.add_state("init")
   state_scan = pris_fsm.add_state("scan")
+  state_path = pris_fsm.add_state("path")
+  state_push = pris_fsm.add_state("push")
+  state_end = pris_fsm.add_state("end")
   #state_baz = fsm.add_state("baz")
   #state_fee = fsm.add_state("fee")
 
-  state_init.add_transition("scan", init_to_scan) #(next state name, function)
+  state_init.add_transition("scan", init_to_scan) #(next state name, function)'
+  state_init.add_callback_args((vWorld))
+  
+  state_scan.add_transition("path", scan_to_path) #(next state name, function)
+  state_scan.add_transition("end", scan_to_end)
+  state_scan.add_callback_args((vWorld))
+  state_scan.add_return_vars([])
+  
+  state_path.add_callback_args((vWorld))
+  state_path.add_return_vars([])
+  
+  state_push.add_callback_args((vWorld))
+  state_push.add_return_vars([])
   #state_foo.add_transition("baz", foo_to_baz)
   #
   #state_bar.add_transition("foo", bar_to_foo)
@@ -154,11 +190,11 @@ def main():
   canvas_height = 300  # half height
   rCanvas = tk.Canvas(m, bg="white", width=canvas_width*2, height=canvas_height*2)
   
-  motionpath = pris_mp.MotionPath(comm, m, rCanvas, motionQueue)
+  motionpath = pris_path.MotionPath(comm, m, rCanvas, motionQueue)
   
   # visual elements of the virtual robot 
   poly_points = [0,0,0,0,0,0,0,0]
-  motionpath.vrobot.poly_id = rCanvas.create_polygon(poly_points, fill='blue') #robot
+  motionpath.vrobot.poly_id = rCanvas.create_polygon(poly_points, fill='orange') #robot
   motionpath.vrobot.prox_l_id = rCanvas.create_line(0,0,0,0, fill="red") #prox sensors
   motionpath.vrobot.prox_r_id = rCanvas.create_line(0,0,0,0, fill="red")
   motionpath.vrobot.floor_l_id = rCanvas.create_oval(0,0,0,0, outline="white", fill="white") #floor sensors
@@ -171,31 +207,8 @@ def main():
   update_vrobot_thread.start()
   
   #create the virtual worlds that contains the virtual robot
-  vWorld = pris_mp.virtual_world(drawQueue, motionpath.vrobot, rCanvas, canvas_width, canvas_height)
+  vWorld = draw.virtual_world(drawQueue, motionpath.vrobot, rCanvas, canvas_width, canvas_height)
   
-  #create motion path with x,y coordinates
-  waypoint1 = [0,20]
-
-  
-  #add motion path to GUI
-  vWorld.add_waypoint(waypoint1)
-
-
-  #add motion path to Quene
-  motionQueue.put(waypoint1)
-
-  
-  #start a thread to navigate the set path
-  waypoint_thread = threading.Thread(target=motionpath.move_to_waypoint)
-  waypoint_thread.daemon = True
-  waypoint_thread.start()
-
-  update_vrobot_thread = threading.Thread(target=motionpath.update_virtual_robot)
-  update_vrobot_thread.daemon = True
-  update_vrobot_thread.start()
-  
-  #create the virtual worlds that contains the virtual robot
-  vWorld = gui.virtual_world(drawQueue, motionpath.vrobot, rCanvas, canvas_width, canvas_height)
   
   #objects in the world
   rect_l1 = [-150, 0, -110, 100]  #left 1
@@ -217,16 +230,15 @@ def main():
   vWorld.add_obstacle(rect_f1)
   vWorld.add_obstacle(rect_f2)
   
-  draw_world_thread = threading.Thread(target=pris_mp.draw_virtual_world, args=(vWorld, motionpath))
+  draw_world_thread = threading.Thread(target=pris_path.draw_virtual_world, args=(vWorld, motionpath))
   draw_world_thread.daemon = True
   draw_world_thread.start()
 
-  graphics = pris_mp.VirtualWorldGui(vWorld, m)
+  graphics = pris_path.VirtualWorldGui(vWorld, m)
   
-
   pris_fsm = EventFsm()
   print "created a state machine"
-  build_states(pris_fsm)
+  build_states(pris_fsm, vWorld)
 
   pris_fsm.set_start("init")
   pris_fsm.set_current("init")
