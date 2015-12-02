@@ -7,8 +7,6 @@ import numpy as numpy
 import threading
 import final_draw as draw
 
-UPDATE_INTERVAL = 100
-
 #define common angles
 pi4 = 3.14159/2
 pi2 = 3.14159/2
@@ -23,119 +21,6 @@ gMaxRobotNum = 1; # max number of robots to control
 gQuit = False
 m = None
 
-class VirtualWorldGui:
-    def __init__(self, vWorld, m):
-        self.vworld = vWorld
-        
-        #initialize grid, map, and motionpath on
-        self.drawGrid()
-        self.drawMap(None)
-        self.drawMotionpath()
-        
-        #create GUI buttons
-        self.button0 = tk.Button(m,text="Grid")
-        self.button0.pack(side='left')
-        self.button0.bind('<Button-1>', self.drawGrid)
-
-        self.button1 = tk.Button(m,text="Clear")
-        self.button1.pack(side='left')
-        self.button1.bind('<Button-1>', self.clearCanvas)
-
-        self.button2 = tk.Button(m,text="Reset")
-        self.button2.pack(side='left')
-        self.button2.bind('<Button-1>', self.resetvRobot)
-
-        self.button3 = tk.Button(m,text="Map")
-        self.button3.pack(side='left')
-        self.button3.bind('<Button-1>', self.drawMap)
-
-        self.button4 = tk.Button(m,text="Trace")
-        self.button4.pack(side='left')
-        self.button4.bind('<Button-1>', self.toggleTrace)
-
-        self.button5 = tk.Button(m,text="Prox Dots")
-        self.button5.pack(side='left')
-        self.button5.bind('<Button-1>', self.toggleProx)
-
-        self.button6 = tk.Button(m,text="Floor Dots")
-        self.button6.pack(side='left')
-        self.button6.bind('<Button-1>', self.toggleFloor)
-
-        self.button7 = tk.Button(m,text="Motion Path")
-        self.button7.pack(side='left')
-        self.button7.bind('<Button-1>', self.drawMotionpath)
-
-        self.button8 = tk.Button(m,text="Exit")
-        self.button8.pack(side='left')
-        self.button8.bind('<Button-1>', stopProg)
-        
-    def resetvRobot(self, event=None):
-        self.vworld.vrobot.reset_robot()
-
-    def toggleTrace(self, event=None):
-        if self.vworld.trace:
-            self.vworld.trace = False
-            self.button4["text"] = "Trace"
-        else:
-            self.vworld.trace = True
-            self.button4["text"] = "No Trace"
-
-    def toggleProx(self, event=None):
-        if self.vworld.prox_dots:
-            self.vworld.prox_dots = False
-            self.button5["text"] = "Prox Dots"
-        else:
-            self.vworld.prox_dots = True
-            self.button5["text"] = "No Prox Dots"
-
-    def toggleFloor(self, event=None):
-        if self.vworld.floor_dots:
-            self.vworld.floor_dots = False
-            self.button6["text"] = "Floor Dots"
-        else:
-            self.vworld.floor_dots = True
-            self.button6["text"] = "No Floor Dots"
-
-    def drawMap(self, event=None):
-        self.vworld.draw_map(None)
-        
-    def drawMotionpath(self, event=None):
-        self.vworld.draw_motionpath()
-
-    def drawGrid(self, event=None):
-        x1, y1 = 0, 0
-        x2, y2 = self.vworld.canvas_width*2, self.vworld.canvas_height*2
-        del_x, del_y = 20, 20
-        num_x, num_y = x2 / del_x, y2 / del_y
-        # draw center (0,0)
-        self.vworld.canvas.create_rectangle(self.vworld.canvas_width-3,self.vworld.canvas_height-3,
-                self.vworld.canvas_width+3,self.vworld.canvas_height+3, fill="red")
-        # horizontal grid
-        for i in range(num_y):
-            y = i * del_y
-            self.vworld.canvas.create_line(x1, y, x2, y, fill="yellow")
-        # verticle grid
-        for j in range(num_x):
-            x = j * del_x
-            self.vworld.canvas.create_line(x, y1, x, y2, fill="yellow")
-
-    def clearCanvas(self, event=None):
-        vcanvas = self.vworld.canvas
-        vrobot = self.vworld.vrobot
-        vcanvas.delete("all")
-        poly_points = [0,0,0,0,0,0,0,0]
-        vrobot.poly_id = vcanvas.create_polygon(poly_points, fill='blue')
-        vrobot.prox_l_id = vcanvas.create_line(0,0,0,0, fill="red")
-        vrobot.prox_r_id = vcanvas.create_line(0,0,0,0, fill="red")
-        vrobot.floor_l_id = vcanvas.create_oval(0,0,0,0, outline="white", fill="white")
-        vrobot.floor_r_id = vcanvas.create_oval(0,0,0,0, outline="white", fill="white")
-
-    def updateCanvas(self, drawQueue):
-        while (drawQueue.qsize() > 0):
-            drawData = drawQueue.get()
-            self.vworld.canvas.coords(drawData[0], drawData[1])
-        self.vworld.canvas.after(UPDATE_INTERVAL, self.updateCanvas, drawQueue)
-   
 class MotionPath:
     def __init__(self, comm, m, rCanvas, motionQueue):
         self.gMaxRobotNum = 1
@@ -227,8 +112,62 @@ class MotionPath:
             time.sleep(.7)
             robot.set_musical_note(0)
     
+    #this func calculates a motionpath for the robot
+    def get_motionpath(self, vWorld, decoy_corns):
+        self.vWorld = vWorld
+        print "calculating motion path"
+        
+        #calc final waypoint
+        decoy_edgex = decoy_corns[2] + 40
+        #handle edge case
+        if decoy_edgex > 230:
+            decoy_edgex = 200
+        decoy_edgey = decoy_corns[3] - 20
+        
+        #calc waypoint 1
+        wp1_x = 0
+        wp1_y = decoy_corns[1] - 40 - 40
+        if wp1_y > -30:
+            wp1_y = -30
+            
+        #calc waypoint 2
+        wp2_x = decoy_edgex + 30
+        if decoy_edgex > 230:
+            wp2_x = 210
+        wp2_y = wp1_y
+        
+        #calc waypoint 3
+        wp3_x = wp2_x
+        wp3_y = decoy_edgey       
+        
+        
+        #create motion path with x,y coordinates
+        waypoint1 = [wp1_x, wp1_y]
+        waypoint2 = [wp2_x, wp2_y]
+        waypoint3 = [wp3_x, wp3_y]
+        waypoint4 = [decoy_edgex,decoy_edgey]
+ 
+        #add motion path to GUI
+        vWorld.add_waypoint(waypoint1)
+        vWorld.add_waypoint(waypoint2)
+        vWorld.add_waypoint(waypoint3)
+        vWorld.add_waypoint(waypoint4)
+        
+        #draw motion path on GUI map
+        vWorld.draw_motionpath()
+        
+        #add motion path to Quene
+        self.motionQueue.put(waypoint1)
+        self.motionQueue.put(waypoint2)
+        self.motionQueue.put(waypoint3)
+        self.motionQueue.put(waypoint4)
+        
+        print "Motion path calculated."
+    
     #this func moves the robot to a specified waypoint (input ex: waypoint1 = [150,0])
     def xy_motion(self,waypoint):
+        
+                print "waypoint" , waypoint
                 #set target waypoints
                 wp_x = waypoint[0]
                 wp_y = waypoint[1]
@@ -241,7 +180,7 @@ class MotionPath:
                 #print to terminal
                 print "Moving to waypoint(", wp_x,"," , wp_y, ").\n\n"
 
-                #calc x and y distance from curren to waypoint
+                #calc x and y distance from current to waypoint
                 delt_x = round(wp_x - current_x, 2)
                 delt_y = round(wp_y - current_y, 2)
                                 
@@ -284,44 +223,70 @@ class MotionPath:
                     
                 curr_delt_a = wp_a - current_a
                 delt_a = wp_a - current_a
-                                        
-                #turn robot to the angle
-                while abs(curr_delt_a) > .05:
-                    curr_delt_a = wp_a - current_a
+                
+                print "waypoint angle" , wp_a
+                print "delta_a" ,delt_a
+                
+                if not wp_a == 3.14:   #handle edge case of robot directly behind                     
+                    #turn robot to the angle
                     if delt_a > 0:
-                        self.move_right()
+                            self.move_right()
                     elif delt_a < 0:
-                        self.move_left()
-                    current_a = self.vrobot.a 
-                    time.sleep(.001)
-                self.stop_move()
+                            self.move_left()
+                    while abs(curr_delt_a) > .05:
+                        curr_delt_a = wp_a - current_a
+                        #if delt_a > 0:
+                        #    self.move_right()
+                        #elif delt_a < 0:
+                        #    self.move_left()
+                        current_a = self.vrobot.a
+                        print "current_a", current_a
+                        print "curr_delt_a", curr_delt_a
+                        time.sleep(.001)
+                    self.stop_move()
                 
-                time.sleep(.5) #pause
-                #initalize delta between current and desired waypoint
-                curr_delt_x = wp_x - current_x
-                curr_delt_y = wp_y - current_y
-                
-                wp_a = wp_a % (2 * 3.1415) # value aways zero to 2pi
-                
-                #drive to x, y waypoint coordinates. Condition looks for sign change in delta
-                if p7i4 <= wp_a <= p2i or 0 <= wp_a <= pi4 or p3i4 <= wp_a <= p5i4: #if driving mainly up or down
+                    time.sleep(.5) #pause
+                    #initalize delta between current and desired waypoint
+                    curr_delt_x = wp_x - current_x
+                    curr_delt_y = wp_y - current_y
+                    
+                    wp_a = wp_a % (2 * 3.1415) # value aways zero to 2pi
+                    
+                    #drive to x, y waypoint coordinates. Condition looks for sign change in delta
+                    if p7i4 <= wp_a <= p2i or 0 <= wp_a <= pi4 or p3i4 <= wp_a <= p5i4: #if driving mainly up or down
+                        while numpy.sign(curr_delt_y) == numpy.sign(delt_y):
+                            curr_delt_x = wp_x - self.vrobot.x
+                            curr_delt_y = wp_y - self.vrobot.y                    
+                            self.move_up()
+                            curr_delt_x = wp_x - self.vrobot.x
+                            curr_delt_y = wp_y - self.vrobot.y
+                            time.sleep(.001)
+                    elif pi4 < wp_a < p3i4 or p5i4 <= wp_a <= p7i4: #if driving mainly left or right
+                        while numpy.sign(curr_delt_x) == numpy.sign(delt_x):
+                            curr_delt_x = wp_x - self.vrobot.x
+                            curr_delt_y = wp_y - self.vrobot.y                    
+                            self.move_up()
+                            curr_delt_x = wp_x - self.vrobot.x
+                            curr_delt_y = wp_y - self.vrobot.y
+                            time.sleep(.001)                    
+                    self.stop_move()
+                #move backward case
+                else:
+                    print "moving backward to waypoint"
+                    time.sleep(.5) #pause
+                    #initalize delta between current and desired waypoint
+                    curr_delt_x = wp_x - current_x
+                    curr_delt_y = wp_y - current_y
+                                        
+                    #drive to x, y waypoint coordinates. Condition looks for sign change in delta
+                    self.move_down()
                     while numpy.sign(curr_delt_y) == numpy.sign(delt_y):
                         curr_delt_x = wp_x - self.vrobot.x
                         curr_delt_y = wp_y - self.vrobot.y                    
-                        self.move_up()
-                        curr_delt_x = wp_x - self.vrobot.x
-                        curr_delt_y = wp_y - self.vrobot.y
                         time.sleep(.001)
-                elif pi4 < wp_a < p3i4 or p5i4 <= wp_a <= p7i4: #if driving mainly left or right
-                    while numpy.sign(curr_delt_x) == numpy.sign(delt_x):
-                        curr_delt_x = wp_x - self.vrobot.x
-                        curr_delt_y = wp_y - self.vrobot.y                    
-                        self.move_up()
-                        curr_delt_x = wp_x - self.vrobot.x
-                        curr_delt_y = wp_y - self.vrobot.y
-                        time.sleep(.001)                    
-                self.stop_move()
-            
+                    self.stop_move()
+                    
+                    
                 self.motionQueue.task_done()
                 time.sleep(1) #pause
                 
@@ -580,7 +545,6 @@ class MotionPath:
     #this function handles the input from the queue to guide the robot            
     def move_to_waypoint(self):
         #pause to allow robot to connect before beginning
-        time.sleep(5)
 
         while (self.motionQueue.qsize() > 0):
             if self.gRobotList:
@@ -610,10 +574,7 @@ class MotionPath:
 
         #wait until robot is connected
         while not self.gRobotList:
-            print "waiting for robot to connect"
             time.sleep(0.1)
-
-        print "Connected to robot!"
         
         while not gQuit:
             if self.gRobotList is not None:
@@ -659,24 +620,7 @@ class MotionPath:
                     self.vrobot.floor_r = False
             time.sleep(0.001)
                     
-def stopProg(event=None):
-    global gQuit
-    global m
-    #m.quit()
-    gQuit = True
-    print "Exit"
 
-#Thread to draw the robot in the GUI
-def draw_virtual_world(virtual_world, motionpath):
-    time.sleep(1) # give time for robot to connect.
-    while not gQuit:
-        if motionpath.gRobotList is not None:
-            virtual_world.draw_robot()
-            virtual_world.draw_prox("left")
-            virtual_world.draw_prox("right")
-            virtual_world.draw_floor("left")
-            virtual_world.draw_floor("right")
-        time.sleep(0.1)
 
 #def main(argv=None): 
 #    global m

@@ -7,12 +7,13 @@ from HamsterAPI.comm_ble import RobotComm
 import final_draw as draw
 import prisoner_path as pris_path
 import prisoner_scan as pris_scan
+import final_GUI as gui
 #from final_settings import *#file that contains global variables
 
-#gQuit = False
-#gMaxRobotNum = 2; # max number of robots to control
-#event_queue = None
-#m = None
+gQuit = False
+gMaxRobotNum = 2; # max number of robots to control
+event_queue = None
+m = None
 
   
 class Event:
@@ -59,8 +60,9 @@ class EventFsm:
         if event_queue:
           event = event_queue.get()
           print 'event', event.name
+          print "callback args" ,self.states[self.currentState].callback_args
           if event.name in self.states[self.currentState].transitions:
-            self.states[self.currentState].transitions[event.name](self.states[self.currentState].callback_args)
+            self.states[self.currentState].transitions[event.name](*self.states[self.currentState].callback_args)
             self.set_current(event.name)
         time.sleep(.1)
 
@@ -89,8 +91,15 @@ def init_to_scan(vWorld):
     
 
   
-def scan_to_path(vWorld):
-  print "transition scan -> path" 
+def scan_to_path(vWorld, motionpath):
+  print "transition scan -> path"
+  #calculate motionpath based on box position
+  motionpath.get_motionpath(vWorld, pris_fsm.states["scan"].return_vars)
+  
+  #start a thread to navigate the set path
+  waypoint_thread = threading.Thread(target=motionpath.move_to_waypoint)
+  waypoint_thread.daemon = True
+  waypoint_thread.start()
 
 def scan_to_end(vWorld):
   print "transition scan -> end"
@@ -127,7 +136,7 @@ def monitor_events():
 
     time.sleep(.01)
 
-def build_states(pris_fsm, vWorld):
+def build_states(pris_fsm, vWorld, motionpath):
   state_init = pris_fsm.add_state("init")
   state_scan = pris_fsm.add_state("scan")
   state_path = pris_fsm.add_state("path")
@@ -137,14 +146,14 @@ def build_states(pris_fsm, vWorld):
   #state_fee = fsm.add_state("fee")
 
   state_init.add_transition("scan", init_to_scan) #(next state name, function)'
-  state_init.add_callback_args((vWorld))
+  state_init.add_callback_args((vWorld,))
   
   state_scan.add_transition("path", scan_to_path) #(next state name, function)
   state_scan.add_transition("end", scan_to_end)
-  state_scan.add_callback_args((vWorld))
+  state_scan.add_callback_args((vWorld, motionpath))
   state_scan.add_return_vars([])
   
-  state_path.add_callback_args((vWorld))
+  state_path.add_callback_args((vWorld, motionpath))
   state_path.add_return_vars([])
   
   state_push.add_callback_args((vWorld))
@@ -217,7 +226,7 @@ def main():
   rect_b2 = [-50, -140, 50, -100]  #back 2
   rect_b3 = [50, -140, 150, -100]    #back 3
   rect_b4 = [150, -140, 250, -100] #back 4
-  rect_r1 = [210, 0, 250, 100]    #right 1
+  rect_r1 = [250, 0, 290, 100]    #right 1
   rect_f1 = [-110, 98, -40, 100]    #front 1
   rect_f2 = [40, 98, 250, 100]    #front 2
   vWorld.add_obstacle(rect_l1)
@@ -230,15 +239,15 @@ def main():
   vWorld.add_obstacle(rect_f1)
   vWorld.add_obstacle(rect_f2)
   
-  draw_world_thread = threading.Thread(target=pris_path.draw_virtual_world, args=(vWorld, motionpath))
+  draw_world_thread = threading.Thread(target=gui.draw_virtual_world, args=(vWorld, motionpath))
   draw_world_thread.daemon = True
   draw_world_thread.start()
 
-  graphics = pris_path.VirtualWorldGui(vWorld, m)
+  graphics = gui.VirtualWorldGui(vWorld, m)
   
   pris_fsm = EventFsm()
   print "created a state machine"
-  build_states(pris_fsm, vWorld)
+  build_states(pris_fsm, vWorld, motionpath)
 
   pris_fsm.set_start("init")
   pris_fsm.set_current("init")

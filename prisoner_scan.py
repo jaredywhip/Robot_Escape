@@ -137,16 +137,18 @@ def scan(gQuit, grobotList, vWorld):
                 
                 decoy_coord = calc_decoy_pos(leading_deg, dist_psd)
                 
+                #draw decoy on map
+                scan_result.extend([decoy_coord[0], decoy_coord[1], decoy_coord[2], decoy_coord[3]])   
+                vWorld.add_obstacle(scan_result)
+                vWorld.draw_map('blue')
+                
                 #center the psd sensor
                 while deg <= 90:
                     dir = 1
                     deg = rotate_servo(deg_timer, dir, delta, deg, period, robot)[0]
                     deg_timer = rotate_servo(deg_timer, dir, delta, deg, period, robot)[1]
                 
-                #draw decoy on map
-                scan_result.extend([decoy_coord[0], decoy_coord[1], decoy_coord[2], decoy_coord[3]])   
-                vWorld.add_obstacle(scan_result)
-                vWorld.draw_map('blue')
+
                 break
             
             #handle case where no decoy is in place
@@ -156,7 +158,7 @@ def scan(gQuit, grobotList, vWorld):
                 break
                 
             
-        time.sleep(.01)
+        time.sleep(.001)
     
     print "scan complete"
     return scan_result

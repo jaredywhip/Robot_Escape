@@ -1,16 +1,12 @@
 import Tkinter as tk 
 import time 
-from HamsterAPI.comm_ble import RobotComm
-import math
-import numpy as numpy
-import threading
 import final_draw as draw
 
 UPDATE_INTERVAL = 100
 
-gMaxRobotNum = 1; # max number of robots to control
+gMaxRobotNum = 2; # max number of robots to control
 gQuit = False
-m = None
+
 
 class VirtualWorldGui:
     def __init__(self, vWorld, m):
@@ -54,9 +50,9 @@ class VirtualWorldGui:
         self.button7.pack(side='left')
         self.button7.bind('<Button-1>', self.drawMotionpath)
 
-        self.button8 = tk.Button(m,text="Exit")
+        self.button8 = tk.Button(m,text="Exit", command=stopProg)
         self.button8.pack(side='left')
-        self.button8.bind('<Button-1>', stopProg)
+        self.button8.bind('<Button-1>')
         
     def resetvRobot(self, event=None):
         self.vworld.vrobot.reset_robot()
@@ -125,73 +121,13 @@ class VirtualWorldGui:
             self.vworld.canvas.coords(drawData[0], drawData[1])
         self.vworld.canvas.after(UPDATE_INTERVAL, self.updateCanvas, drawQueue)
    
-
-                
-                
-    #Thread to update virtual robot based on a model of my robot
-    def update_virtual_robot(self):
-  
-        #these values are for a charged robot 031
-        #the model is based on the model provided, and if the battery is charged, meets the reqs
-        noise_prox = 25 # noisy level for proximity
-        noise_floor = 20 #floor ambient color - if floor is darker, set higher noise
-        p_factor = 1.4 #proximity conversion - assuming linear
-        d_factor = 2.3 #travel distance conversion (large d_factor makes vrobot slower)
-        a_factor = 5 #rotation conversion, assuming linear (large a_factor makes vrobot slower)
-        wheel_balance = -6 #value for 031. -128(L) ~ 127(R)(0: off), my hamster swerves right
-
-        #wait until robot is connected
-        while not self.gRobotList:
-            print "waiting for robot to connect"
-            time.sleep(0.1)
-
-        print "Connected to robot!"
-        
-        while not gQuit:
-            if self.gRobotList is not None:
-                robot = self.gRobotList[0]
-            
-                #set wheel balance
-                robot.set_wheel_balance(wheel_balance)
-                                
-                #update robot position in the GUI                        
-                t = time.time()
-                del_t = t - self.vrobot.t
-                self.vrobot.t = t # update the tick
-                if self.vrobot.sl == self.vrobot.sr:
-                    self.vrobot.x = self.vrobot.x + self.vrobot.sl * del_t * math.sin(self.vrobot.a) * d_factor
-                    self.vrobot.y = self.vrobot.y + self.vrobot.sl * del_t * math.cos(self.vrobot.a) * d_factor
-                if self.vrobot.sl == -self.vrobot.sr:
-                    self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor
-                    
-                #update sensors
-                prox_l = robot.get_proximity(0)
-                prox_r = robot.get_proximity(1)
-                
-                #draw prox lines
-                if (prox_l > noise_prox):
-                    self.vrobot.dist_l = (100 - prox_l)*p_factor
-                else:
-                    self.vrobot.dist_l = False
-                if (prox_r > noise_prox):
-                    self.vrobot.dist_r = (100 - prox_r)*p_factor
-                else:
-                    self.vrobot.dist_r = False
-                
-                #draw floor dots
-                floor_l = robot.get_floor(0)
-                floor_r = robot.get_floor(1)
-                if (floor_l < noise_floor):
-                    self.vrobot.floor_l = floor_l
-                else:
-                    self.vrobot.floor_l = False
-                if (floor_r < noise_floor):
-                    self.vrobot.floor_r = floor_r
-                else:
-                    self.vrobot.floor_r = False
-            time.sleep(0.01)
-                    
-
+def stopProg():
+    #global gQuit
+    #global m
+    #m.destroy()
+    gQuit = True
+    print "Exit"
+    
 #Thread to draw the robot in the GUI
 def draw_virtual_world(virtual_world, motionpath):
     time.sleep(1) # give time for robot to connect.
