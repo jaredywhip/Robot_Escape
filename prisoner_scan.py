@@ -1,6 +1,7 @@
 from collections import deque
 import math
 import time
+import final_config as gVars
 
 
 #function to control servo
@@ -49,7 +50,7 @@ def calc_decoy_pos(leading_deg, dist_psd):
     
     return (box_x1, box_y1, box_x2, box_y2)
 
-def scan(gQuit, grobotList, vWorld):
+def scan(vWorld):
     print "Scanning for decoy!"
     print 'vWorld canvas_height', vWorld.canvas_height
     
@@ -84,8 +85,8 @@ def scan(gQuit, grobotList, vWorld):
     
 
     #scan
-    while (not gQuit):
-        robot = grobotList[0]
+    while (not gVars.gQuit):
+        robot = gVars.grobotList[0]
         
         #rotate servo
         deg = rotate_servo(deg_timer, dir, delta, deg, period, robot)[0]

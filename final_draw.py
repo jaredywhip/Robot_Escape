@@ -51,11 +51,11 @@ class virtual_robot:
         self.floor_r = floor_r
 
 class virtual_world:
-    def __init__(self, drawQueue, vrobot=None, canvas=None, canvas_width=0,
+    def __init__(self, drawQueue, pvrobot=None, gvrobot=None, canvas=None, canvas_width=0,
                  canvas_height=0, mp=None, trace=False, prox_dots=False,
                  floor_dots=False):
         self.drawQueue = drawQueue
-        self.vrobot = vrobot
+        self.vrobot = pvrobot
         self.canvas = canvas
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height

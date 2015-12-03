@@ -1,11 +1,10 @@
 import Tkinter as tk 
 import time 
 import final_draw as draw
+import final_config as gVars
+
 
 UPDATE_INTERVAL = 100
-
-gMaxRobotNum = 2; # max number of robots to control
-gQuit = False
 
 
 class VirtualWorldGui:
@@ -122,17 +121,15 @@ class VirtualWorldGui:
         self.vworld.canvas.after(UPDATE_INTERVAL, self.updateCanvas, drawQueue)
    
 def stopProg():
-    #global gQuit
-    #global m
-    #m.destroy()
-    gQuit = True
+    gVars.m.destroy()
+    gVars.gQuit = True
     print "Exit"
     
 #Thread to draw the robot in the GUI
-def draw_virtual_world(virtual_world, motionpath):
+def draw_virtual_world(virtual_world, prisoner):
     time.sleep(1) # give time for robot to connect.
-    while not gQuit:
-        if motionpath.gRobotList is not None:
+    while not gVars.gQuit:
+        if prisoner.robot is not None:
             virtual_world.draw_robot()
             virtual_world.draw_prox("left")
             virtual_world.draw_prox("right")
