@@ -1,13 +1,20 @@
+'''
+/* =======================================================================
+Description:
 
-import Tkinter as tk 
-import time 
+    This file contains a prisoner robot class that has methods to calculate
+    its virtual position and navigate a motionpath.
+   ========================================================================*/
+'''
+
+import final_config as gVars
+import final_draw as draw
 from HamsterAPI.comm_ble import RobotComm
 import math
 import numpy as numpy
 import threading
-import final_draw as draw
-import final_config as gVars
-
+import time 
+import Tkinter as tk 
 
 #define common angles
 pi4 = 3.14159/2
@@ -18,7 +25,6 @@ p5i4 = (5*3.14159)/4
 p3i2 = (3*3.14159)/2
 p7i4 = (7*3.14159)/4
 p2i = 2 * 3.14159
-
 
 class Prisoner:
     def __init__(self, comm, rCanvas, motionQueue):

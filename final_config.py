@@ -7,8 +7,6 @@ Description:
    ========================================================================*/
 '''
 
-import Queue
-
 grobotList = []
 gQuit = False
 gMaxRobotNum = 2; # max number of robots to control

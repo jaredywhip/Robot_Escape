@@ -1,22 +1,28 @@
-import time
-import threading
-import Tkinter as tk 
-import Queue
-import random
-from HamsterAPI.comm_ble import RobotComm
-import final_draw as draw
-#import prisoner_bot as pris_bot
-import prisoner_scan as pris_scan
-import final_GUI as gui
-#from final_settings import *#file that contains global variables
+'''
+/* =======================================================================
+Description:
+
+    This file contains a finite state machine used by the prisoner robot.
+   ========================================================================*/
+'''
+
 import final_config as gVars
+import final_draw as draw
+import final_GUI as gui
+from HamsterAPI.comm_ble import RobotComm
+import prisoner_scan as pris_scan   #import prisoner_bot as pris_bot
+import Queue
+import threading
+import time
+import Tkinter as tk 
+import random
 
-
+#set event names
 class Event:
   def __init__(self, name):
     self.name = name
 
-
+#define states from the FSM
 class State:
     def __init__(self):
       self.name = ''
@@ -31,7 +37,8 @@ class State:
     #store variables from each state, return_vars should be list format 
     def add_return_vars(self, return_vars):
       self.return_vars = return_vars 
-    
+ 
+#define componenets of FSM and run 
 class EventFsm:
     def __init__(self):
         self.states = {}
@@ -57,21 +64,20 @@ class EventFsm:
         if self.pris_event_queue:
           event = self.pris_event_queue.get()
           print 'event', event.name
-          print "callback args" ,self.states[self.currentState].callback_args
           if event.name in self.states[self.currentState].transitions:
             self.states[self.currentState].transitions[event.name](*self.states[self.currentState].callback_args)
             self.set_current(event.name)
         time.sleep(.1)
 
+#--------------------------------------------------------------
+#Callback functions
+
+#begin scanning with the PSD sensor
 def init_to_scan(vWorld, pris_fsm):
-  #print pris_fsm.currentState
-  print pris_fsm.states["scan"].transitions
   print "transition init -> scan"
    
-  
   #start scanning
   scan_result = []
-  #while pris_fsm.currentState == "init": #state update comes after function call
   while len(scan_result) == 0: #state update comes after function call
     scan_result = pris_scan.scan(vWorld)
     time.sleep(.01)
@@ -85,34 +91,30 @@ def init_to_scan(vWorld, pris_fsm):
     pris_fsm.pris_event_queue.put(Event("path"))
   else:
     pris_fsm.pris_event_queue.put(Event("end"))
-    
 
-  
-def scan_to_path(vWorld, pris_fsm, motionpath):
+#calculate and navigate motionpath
+def scan_to_path(vWorld, pris_fsm, prisoner):
   print "transition scan -> path"
-  #calculate motionpath based on box position
-  motionpath.get_motionpath(vWorld, pris_fsm.states["scan"].return_vars)
   
+  #calculate motionpath based on box position
+  prisoner.get_motionpath(vWorld, pris_fsm.states["scan"].return_vars)
+  
+  #ADD CODE TO CHECK WHERE THE GUARD IS BEFORE MOVING
   #start a thread to navigate the set path
-  waypoint_thread = threading.Thread(target=motionpath.move_to_waypoint)
+  waypoint_thread = threading.Thread(target=prisoner.move_to_waypoint)
   waypoint_thread.daemon = True
   waypoint_thread.start()
 
-def scan_to_end(vWorld,pris_fsm):
+def scan_to_end(vWorld,pris_fsm, prisoner):
   print "transition scan -> end"
+  
+  #end the program
+  gVars.m.destroy()
   gVars.gQuit = True
+  print "Exit"
 
-def baz_to_bar():
-  print "transition baz -> bar"
-
-def baz_to_fee():
-  print "transition baz -> fee"
-
-def fee_to_baz():
-  print "transition fee -> baz"
-
-def fee_to_foo():
-  print "transition fee -> foo"
+#--------------------------------------------------------------
+#dispatcher thread
 
 #thread to monitor events
 def monitor_events(pris_fsm):
@@ -122,37 +124,33 @@ def monitor_events(pris_fsm):
     if start == True and len(gVars.grobotList) == gVars.gMaxRobotNum:
       pris_fsm.pris_event_queue.put(Event("scan"))
       start = False
-      
-      
-    ##transition to next state
-    #if pris_fsm.states["scan"].return_vars:
-    #  if not (pris_fsm.states["scan"].return_vars[0] == 'no_decoy'):
-    #    event_queue.put(Event("push"))
-    #  else:
-    #    event_queue.put(Event("end"))
-
     time.sleep(.01)
+    
+#--------------------------------------------------------------
+#state building function 
 
-def build_states(pris_fsm, vWorld, motionpath):
+def build_states(pris_fsm, vWorld, prisoner):
+  #initialize state
   state_init = pris_fsm.add_state("init")
+  state_init.add_transition("scan", init_to_scan) #(next state name, function)
+  state_init.add_callback_args((vWorld,pris_fsm)) #define arguements used in the transition callback funcs
+  
+  #scan for decoy box state
   state_scan = pris_fsm.add_state("scan")
-  state_path = pris_fsm.add_state("path")
-  state_push = pris_fsm.add_state("push")
-  state_end = pris_fsm.add_state("end")
-  #state_baz = fsm.add_state("baz")
-  #state_fee = fsm.add_state("fee")
-
-  state_init.add_transition("scan", init_to_scan) #(next state name, function)'
-  state_init.add_callback_args((vWorld,pris_fsm))
-  
-  state_scan.add_transition("path", scan_to_path) #(next state name, function)
+  state_scan.add_transition("path", scan_to_path) 
   state_scan.add_transition("end", scan_to_end)
-  state_scan.add_callback_args((vWorld, pris_fsm, motionpath))
-  state_scan.add_return_vars([])
+  state_scan.add_callback_args((vWorld, pris_fsm, prisoner))
+  state_scan.add_return_vars([])  #define return variables for the state
   
-  state_path.add_callback_args((vWorld, pris_fsm, motionpath))
+  #navigate motionpath state
+  state_path = pris_fsm.add_state("path")
+  state_path.add_callback_args((vWorld, pris_fsm, prisoner))
   state_path.add_return_vars([])
   
+  #push the decoy box into position state
+  state_push = pris_fsm.add_state("push")
   state_push.add_callback_args((vWorld, pris_fsm))
   state_push.add_return_vars([])
-
+  
+  #end state
+  state_end = pris_fsm.add_state("end")

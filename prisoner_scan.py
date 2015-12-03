@@ -1,10 +1,17 @@
+'''
+/* =======================================================================
+Description:
+
+    This file contains functions used in the scanning state of the prisoner.
+   ========================================================================*/
+'''
+
 from collections import deque
+import final_config as gVars
 import math
 import time
-import final_config as gVars
 
-
-#function to control servo
+#function to write to the input that controls the server.
 def write_servo_position(deg, robot):
     robot.set_io_mode(1, 0x08) #Servo control
     robot.set_port(1, deg)
@@ -25,6 +32,7 @@ def read_psd_distance(robot):
     psd_value = robot.get_port(0)
     return psd_value #read psd distance
 
+#function to rotate the servo motor
 def rotate_servo(deg_timer, dir, delta, deg, period, robot):
     #rotate servo
     if deg > 0 and (time.time() > deg_timer):
@@ -43,18 +51,34 @@ def calc_decoy_pos(leading_deg, dist_psd):
     x_corn = math.cos(math.radians(leading_deg)) * dist_corn
     y_corn = math.sin(math.radians(leading_deg)) * dist_corn + 12
     
-    box_x1 = x_corn
-    box_y1 = y_corn - 40 
-    box_x2 = x_corn + 40
+    box_x1 = x_corn         #bot left
+    box_y1 = y_corn - 40    
+    box_x2 = x_corn + 40    #top right
     box_y2 = y_corn
+    
+    print 'pre',[box_x1, box_y1, box_x2, box_y2]
+    #handle when box is incorrectly positioned outside of know boundary [50,0,200,90]
+    boundary = [50,0,200,90]
+    if box_x1 < boundary[0]:
+        box_x1 = boundary[0]
+        box_x2 = box_x1 + 40
+    elif box_x2 > boundary[2]:
+        box_x2 = boundary[2]
+        box_x1 = box_x2 - 40
+    if box_y1 < boundary[1]:
+        box_y1 = boundary[1]
+        box_y2 = box_y1 + 40
+    elif box_y2 > boundary[3]:
+        box_y2 = boundary[3]
+        box_y1 = box_y2 - 40
+    
+    print 'post',[box_x1, box_y1, box_x2, box_y2]
     
     return (box_x1, box_y1, box_x2, box_y2)
 
 def scan(vWorld):
     print "Scanning for decoy!"
-    print 'vWorld canvas_height', vWorld.canvas_height
-    
-    
+        
     #set max length of data that will be low pass filtered
     max_len = 5
     #this creates a list of two elements. it adds new element in pos [1] and pops elem in pos[0]
@@ -110,7 +134,6 @@ def scan(vWorld):
         if time.time() > stablize_timer:
             if all(val <= threshold for val in lpf_mag):
                 print 'OBJECT!'
-                print lpf_mag
                 leading_deg = deg
                 time.sleep(1)
                 
@@ -128,9 +151,7 @@ def scan(vWorld):
                     psd_list.append(mag)
                     #low pass filter the data, return deque
                     lpf_mag = low_pass(psd_list, max_len)
-                
-                print lpf_mag
-                
+                                
                 #calculate distance
                 min_psd = min(psd_list)
                 leading_deg = deg
@@ -140,8 +161,8 @@ def scan(vWorld):
                 
                 #draw decoy on map
                 scan_result.extend([decoy_coord[0], decoy_coord[1], decoy_coord[2], decoy_coord[3]])   
-                vWorld.add_obstacle(scan_result)
-                vWorld.draw_map('blue')
+                vWorld.add_decoy(scan_result)
+                vWorld.draw_decoy()
                 
                 #center the psd sensor
                 while deg <= 90:

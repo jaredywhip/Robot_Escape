@@ -1,11 +1,18 @@
-import Tkinter as tk 
-import time 
-import final_draw as draw
+'''
+/* =======================================================================
+Description:
+
+    This file contains a Virtual World Gui class, a function to draw the
+    virtual world, and a function to exit the program.
+   ========================================================================*/
+'''
+
 import final_config as gVars
-
-
+import final_draw as draw
+import time
+import Tkinter as tk 
+ 
 UPDATE_INTERVAL = 100
-
 
 class VirtualWorldGui:
     def __init__(self, vWorld, m):
@@ -14,6 +21,7 @@ class VirtualWorldGui:
         #initialize grid, map, and motionpath on
         self.drawGrid()
         self.drawMap(None)
+        self.drawBoundary()
         self.drawMotionpath()
         
         #create GUI buttons
@@ -83,6 +91,12 @@ class VirtualWorldGui:
     def drawMap(self, event=None):
         self.vworld.draw_map(None)
         
+    def drawBoundary(self):
+        self.vworld.draw_boundary()
+    
+    def drawDecoy(self):
+        self.vworld.draw_decoy()
+        
     def drawMotionpath(self, event=None):
         self.vworld.draw_motionpath()
 
@@ -120,19 +134,28 @@ class VirtualWorldGui:
             self.vworld.canvas.coords(drawData[0], drawData[1])
         self.vworld.canvas.after(UPDATE_INTERVAL, self.updateCanvas, drawQueue)
    
+#Function to end the program
 def stopProg():
     gVars.m.destroy()
     gVars.gQuit = True
     print "Exit"
     
 #Thread to draw the robot in the GUI
-def draw_virtual_world(virtual_world, prisoner):
+def draw_virtual_world(virtual_world, prisoner, guard):
     time.sleep(1) # give time for robot to connect.
     while not gVars.gQuit:
+        #draw prisoner robot
         if prisoner.robot is not None:
-            virtual_world.draw_robot()
-            virtual_world.draw_prox("left")
-            virtual_world.draw_prox("right")
-            virtual_world.draw_floor("left")
-            virtual_world.draw_floor("right")
+            virtual_world.draw_pris_robot()
+            virtual_world.draw_pris_prox("left")
+            virtual_world.draw_pris_prox("right")
+            virtual_world.draw_pris_floor("left")
+            virtual_world.draw_pris_floor("right")
+        #draw guard robot
+        if guard.robot is not None:
+            virtual_world.draw_guard_robot()
+            virtual_world.draw_guard_prox("left")
+            virtual_world.draw_guard_prox("right")
+            virtual_world.draw_guard_floor("left")
+            virtual_world.draw_guard_floor("right")
         time.sleep(0.1)
