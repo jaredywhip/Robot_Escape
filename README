@@ -1,0 +1,15 @@
+README For Robot_Escape
+
+Files Needed:
+
+final_GUI.py
+final_draw.py
+final_config.py
+final_main.py
+guard_bot.py
+prisoner_bot.py
+prisoner_scan.py
+prisoner_FSM.py
+
+Also need the HamsterAPI folder
+
