@@ -73,9 +73,14 @@ class EventFsm:
 #Callback functions
 
 #begin scanning with the PSD sensor
-def init_to_scan(vWorld, pris_fsm):
+def init_to_scan(vWorld, pris_fsm, prisoner):
   print "transition init -> scan"
-   
+  
+  ##TESTING CODE ____ DELETE 
+  #while True:
+  #  prisoner.move_left()
+  #  time.sleep(.001)
+        
   #start scanning
   scan_result = []
   while len(scan_result) == 0: #state update comes after function call
@@ -133,7 +138,7 @@ def build_states(pris_fsm, vWorld, prisoner):
   #initialize state
   state_init = pris_fsm.add_state("init")
   state_init.add_transition("scan", init_to_scan) #(next state name, function)
-  state_init.add_callback_args((vWorld,pris_fsm)) #define arguements used in the transition callback funcs
+  state_init.add_callback_args((vWorld,pris_fsm, prisoner)) #define arguements used in the transition callback funcs
   
   #scan for decoy box state
   state_scan = pris_fsm.add_state("scan")

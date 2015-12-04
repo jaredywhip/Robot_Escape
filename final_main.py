@@ -30,7 +30,6 @@ def main():
     gVars.grobotList = comm.get_robotList()
     gVars.m = tk.Tk() #root
     drawQueue = Queue.Queue(0)
-    motionQueue = Queue.Queue()
   
     #creating the GUI canvas
     canvas_width = 700 # half width
@@ -38,7 +37,7 @@ def main():
     rCanvas = tk.Canvas(gVars.m, bg="white", width=canvas_width*2, height=canvas_height*2)
     
     #create the prisoner vitual robot 
-    prisoner = pris_bot.Prisoner(comm, rCanvas, motionQueue)
+    prisoner = pris_bot.Prisoner(comm, rCanvas)
     
     # visual elements of the virtual robot 
     poly_points = [0,0,0,0,0,0,0,0]
@@ -51,6 +50,7 @@ def main():
     update_pvrobot_thread = threading.Thread(target=prisoner.update_virtual_robot)
     update_pvrobot_thread.daemon = True
     update_pvrobot_thread.start()
+    
     
     #create the prisoner vitual robot 
     guard = guard_bot.Guard(comm, rCanvas)

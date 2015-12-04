@@ -12,12 +12,13 @@ import final_draw as draw
 from HamsterAPI.comm_ble import RobotComm
 import math
 import numpy as numpy
+import Queue
 import threading
 import time 
 import Tkinter as tk 
 
 #define common angles
-pi4 = 3.14159/2
+pi4 = 3.14159/4
 pi2 = 3.14159/2
 p3i4 = (3*3.14159)/4
 pi = 3.14159
@@ -27,7 +28,7 @@ p7i4 = (7*3.14159)/4
 p2i = 2 * 3.14159
 
 class Prisoner:
-    def __init__(self, comm, rCanvas, motionQueue):
+    def __init__(self, comm, rCanvas):
         self.gMaxRobotNum = gVars.gMaxRobotNum
         self.gRobotList = gVars.grobotList
         self.robot = None  #first robot connected will be prisoner
@@ -35,7 +36,7 @@ class Prisoner:
         self.vrobot = draw.virtual_robot()
         self.vrobot.time = time.time()
         self.localize_bool = False
-        self.motionQueue = motionQueue
+        self.motionQueue = Queue.Queue() #start queue for prisoner motion
 
         #joystick commands used to help calibrate the robot model
         rCanvas.bind_all('<w>', self.move_up)
@@ -71,7 +72,8 @@ class Prisoner:
             self.vrobot.sr = 6  
             robot.set_wheel(0,self.vrobot.sl)
             robot.set_wheel(1,self.vrobot.sr)
-            self.vrobot.t = time.time()       
+            self.vrobot.t = time.time()
+            print "vrobot a" , self.vrobot.a
 
     def move_right(self, event=None):
         if self.gRobotList: 
@@ -132,9 +134,12 @@ class Prisoner:
         
         #calc waypoint 1
         wp1_x = 0
-        wp1_y = decoy_corns[1] - 40 - 40
+        wp1_y = decoy_corns[1] - 40 - 20
+        #handle edge cases
         if wp1_y > -30:
             wp1_y = -30
+        elif wp1_y < -80:
+            wp1_y = - 50
             
         #calc waypoint 2
         wp2_x = decoy_edgex + 30
@@ -145,7 +150,6 @@ class Prisoner:
         #calc waypoint 3
         wp3_x = wp2_x
         wp3_y = decoy_edgey       
-        
         
         #create motion path with x,y coordinates
         waypoint1 = [wp1_x, wp1_y]
@@ -181,7 +185,8 @@ class Prisoner:
                 #set robot current position
                 current_x = self.vrobot.x
                 current_y = self.vrobot.y
-                current_a = self.vrobot.a % (2 * 3.1415) # value aways zero to 2pi
+                current_a = self.vrobot.a % (p2i) # value aways zero to 2pi
+
                 
                 #print to terminal
                 print "Moving to waypoint(", wp_x,"," , wp_y, ").\n\n"
@@ -190,6 +195,8 @@ class Prisoner:
                 delt_x = round(wp_x - current_x, 2)
                 delt_y = round(wp_y - current_y, 2)
                                 
+                print 'delta x, y ' , delt_x, delt_y
+                       
                 #calc angle to turn toward waypoint
                 if delt_x == 0:
                     if delt_y > 0:
@@ -209,45 +216,57 @@ class Prisoner:
                         wp_a = current_a                
                 elif delt_x > 0:
                     theta = math.atan(delt_y/delt_x)
-                    if theta > 0:
-                        wp_a = pi2 - theta
-                    if theta < 0:
-                        wp_a = pi2 + (-theta)
+                    print 'theta ', theta
+                    wp_a = pi2 - theta
                 elif delt_x < 0:
                     theta = math.atan(delt_y/delt_x)
-                    if theta > 0:
-                        wp_a = p3i2 - theta
-                    if theta < 0:
-                        wp_a = p3i2 + (-theta)
-                
+                    print 'theta ', theta
+                    wp_a = p3i2 - theta
+                        
                 wp_a = round(wp_a, 2) #round to two decimal places
-                #handle rollover cases around 2pi
-                if wp_a < pi2:
-                    wp_a = wp_a + p2i
-                if current_a < pi2:
-                    current_a = current_a + p2i    
+                
+                print "rounded wp_a", wp_a
                     
                 curr_delt_a = wp_a - current_a
-                delt_a = wp_a - current_a
+                delt_a = curr_delt_a
+                
+                #handle roll over case around 2pi
+                if wp_a >= current_a:
+                    current_a_test = current_a + p2i
+                    wp_a_test = wp_a
+                elif wp_a < current_a:
+                    current_a_test = current_a
+                    wp_a_test = wp_a + p2i              
+                    
+                delt_a_test = wp_a_test - current_a_test
+                
+                print "abs delt a test ", abs(delt_a_test)
+                
                 
                 print "waypoint angle" , wp_a
+                print 'current ang', current_a
                 print "delta_a" ,delt_a
                 
-                if not wp_a == 3.14:   #handle edge case of robot directly behind                     
+                #wp_a = wp_a % (2 * 3.1415) # value aways zero to 2pi
+                
+                if not wp_a == 3.14:   #when wp_a is 3.14 the waypoint is directly behind the bot, handled below
+                    
                     #turn robot to the angle
                     if delt_a > 0:
-                            self.move_right()
-                    elif delt_a < 0:
+                        if abs(delt_a_test) < abs(delt_a):
                             self.move_left()
-                    while abs(curr_delt_a) > .05:
+                        else:
+                            self.move_right()    
+                    elif delt_a < 0:
+                        if abs(delt_a_test) < abs(delt_a):
+                            self.move_right()
+                        else:
+                            self.move_left()
+                    while abs(curr_delt_a) > .03:
                         curr_delt_a = wp_a - current_a
-                        #if delt_a > 0:
-                        #    self.move_right()
-                        #elif delt_a < 0:
-                        #    self.move_left()
                         current_a = self.vrobot.a
                         print "current_a", current_a
-                        print "curr_delt_a", curr_delt_a
+                        print "curr_delt_a", abs(curr_delt_a)
                         time.sleep(.001)
                     self.stop_move()
                 
@@ -256,24 +275,20 @@ class Prisoner:
                     curr_delt_x = wp_x - current_x
                     curr_delt_y = wp_y - current_y
                     
-                    wp_a = wp_a % (2 * 3.1415) # value aways zero to 2pi
+                    #wp_a = wp_a % (2 * 3.1415) # value aways zero to 2pi
                     
                     #drive to x, y waypoint coordinates. Condition looks for sign change in delta
                     if p7i4 <= wp_a <= p2i or 0 <= wp_a <= pi4 or p3i4 <= wp_a <= p5i4: #if driving mainly up or down
+                        self.move_up()
                         while numpy.sign(curr_delt_y) == numpy.sign(delt_y):
                             curr_delt_x = wp_x - self.vrobot.x
                             curr_delt_y = wp_y - self.vrobot.y                    
-                            self.move_up()
-                            curr_delt_x = wp_x - self.vrobot.x
-                            curr_delt_y = wp_y - self.vrobot.y
                             time.sleep(.001)
                     elif pi4 < wp_a < p3i4 or p5i4 <= wp_a <= p7i4: #if driving mainly left or right
+                        self.move_up()
                         while numpy.sign(curr_delt_x) == numpy.sign(delt_x):
                             curr_delt_x = wp_x - self.vrobot.x
                             curr_delt_y = wp_y - self.vrobot.y                    
-                            self.move_up()
-                            curr_delt_x = wp_x - self.vrobot.x
-                            curr_delt_y = wp_y - self.vrobot.y
                             time.sleep(.001)                    
                     self.stop_move()
                 #move backward case
@@ -291,7 +306,6 @@ class Prisoner:
                         curr_delt_y = wp_y - self.vrobot.y                    
                         time.sleep(.001)
                     self.stop_move()
-                    
                     
                 self.motionQueue.task_done()
                 time.sleep(1) #pause
@@ -574,8 +588,8 @@ class Prisoner:
         noise_prox = 25 # noisy level for proximity
         noise_floor = 20 #floor ambient color - if floor is darker, set higher noise
         p_factor = 1.4 #proximity conversion - assuming linear
-        d_factor = 2.3 #travel distance conversion (large d_factor makes vrobot slower)
-        a_factor = 5 #rotation conversion, assuming linear (large a_factor makes vrobot slower)
+        d_factor = 0.9 #travel distance conversion (large d_factor makes vrobot slower)
+        a_factor = 10 #rotation conversion, assuming linear (large a_factor makes vrobot slower)
         wheel_balance = -6 #value for 031. -128(L) ~ 127(R)(0: off), my hamster swerves right
 
         #wait until robot is connected
@@ -599,7 +613,8 @@ class Prisoner:
                     self.vrobot.x = self.vrobot.x + self.vrobot.sl * del_t * math.sin(self.vrobot.a) * d_factor
                     self.vrobot.y = self.vrobot.y + self.vrobot.sl * del_t * math.cos(self.vrobot.a) * d_factor
                 if self.vrobot.sl == -self.vrobot.sr:
-                    self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor
+                    self.vrobot.a = (self.vrobot.a + (self.vrobot.sl * del_t)/a_factor) % (p2i) #always have angle between 0 and 2pi
+                    
                     
                 #update sensors
                 prox_l = robot.get_proximity(0)

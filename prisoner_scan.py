@@ -139,7 +139,7 @@ def scan(vWorld):
                 
                 #rotate to the center of the box
                 if deg > 5:
-                    write_servo_position(deg - 5,robot) #implement
+                    write_servo_position(deg - 3,robot) #implement
                 else:
                     write_servo_position(0,robot) #implement
                     
