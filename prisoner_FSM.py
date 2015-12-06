@@ -75,12 +75,15 @@ class EventFsm:
 #begin scanning with the PSD sensor
 def init_to_scan(vWorld, pris_fsm, prisoner):
   print "transition init -> scan"
+  scan_result = [10, 20, 50, 60]   
+  vWorld.add_decoy(scan_result)
+  vWorld.draw_decoy()
   
-  ##TESTING CODE ____ DELETE 
-  #while True:
-  #  prisoner.move_left()
-  #  time.sleep(.001)
-        
+  time.sleep(2)
+  scan_result=[100, 80, 140, 120] 
+  vWorld.add_decoy(scan_result)
+  vWorld.draw_decoy()
+    
   #start scanning
   scan_result = []
   while len(scan_result) == 0: #state update comes after function call
@@ -110,6 +113,13 @@ def scan_to_path(vWorld, pris_fsm, prisoner):
   waypoint_thread.daemon = True
   waypoint_thread.start()
 
+  
+#push box to 
+def path_to_push(vWorld, pris_fsm, prisoner):
+  print "transition path -> push"
+  prisoner.push_decoy(vWorld)
+  
+    
 def scan_to_end(vWorld,pris_fsm, prisoner):
   print "transition scan -> end"
   
@@ -122,13 +132,21 @@ def scan_to_end(vWorld,pris_fsm, prisoner):
 #dispatcher thread
 
 #thread to monitor events
-def monitor_events(pris_fsm):
+def monitor_events(pris_fsm, prisoner):
   start = True
+  motionpath_done = False
   while not gVars.gQuit:
     #when the correct number of hamsters are connect start program
     if start == True and len(gVars.grobotList) == gVars.gMaxRobotNum:
       pris_fsm.pris_event_queue.put(Event("scan"))
       start = False
+      
+    #check to see if motionpath has been compeleted
+    if prisoner.motion_done == True:      
+      print"adding push to event queue because motionpath done"
+      pris_fsm.pris_event_queue.put(Event("push"))
+      prisoner.motion_done = False
+
     time.sleep(.01)
     
 #--------------------------------------------------------------
@@ -149,6 +167,7 @@ def build_states(pris_fsm, vWorld, prisoner):
   
   #navigate motionpath state
   state_path = pris_fsm.add_state("path")
+  state_path.add_transition("push", path_to_push)
   state_path.add_callback_args((vWorld, pris_fsm, prisoner))
   state_path.add_return_vars([])
   

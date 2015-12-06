@@ -57,8 +57,9 @@ def calc_decoy_pos(leading_deg, dist_psd):
     box_y2 = y_corn
     
     print 'pre',[box_x1, box_y1, box_x2, box_y2]
+    
     #handle when box is incorrectly positioned outside of know boundary [50,0,200,90]
-    boundary = [50,0,200,90]
+    boundary = [50,0,170,80]
     if box_x1 < boundary[0]:
         box_x1 = boundary[0]
         box_x2 = box_x1 + 40
@@ -139,11 +140,17 @@ def scan(vWorld):
                 
                 #rotate to the center of the box
                 if deg > 5:
-                    write_servo_position(deg - 3,robot) #implement
+                    write_servo_position(deg - 4,robot) #implement
                 else:
                     write_servo_position(0,robot) #implement
+                
+                sample_list = [] 
+                while len(sample_list) < 100:
+                    psd_value = read_psd_distance(robot) #implement
+                    mag = 255 - psd_value;
+                    sample_list.append(mag)
+                    psd_list.append(mag)
                     
-                time.sleep(1)
                 #get stable sensor values
                 for i in range(0,5):
                     psd_value = read_psd_distance(robot) #implement
@@ -151,10 +158,11 @@ def scan(vWorld):
                     psd_list.append(mag)
                     #low pass filter the data, return deque
                     lpf_mag = low_pass(psd_list, max_len)
-                                
+                
+                print "lpf psd mags" , lpf_mag                
                 #calculate distance
                 min_psd = min(psd_list)
-                leading_deg = deg
+                leading_deg = deg + 5
                 dist_psd = 1.0169 * min_psd - 7.4546 #empiracle data linear fit, confidence range 60 - 180mm
                 
                 decoy_coord = calc_decoy_pos(leading_deg, dist_psd)

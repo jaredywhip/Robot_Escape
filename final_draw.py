@@ -68,6 +68,7 @@ class virtual_world:
         self.map = mp if mp is not None else []
         self.boundary = []
         self.decoy = []
+        self.decoy_obj = None
         self.motionpath = []
         self.trace = trace #leave trace of robot
         self.prox_dots = prox_dots # draw obstacles detected as dots on map
@@ -89,17 +90,20 @@ class virtual_world:
             
     #define a bounding box where the decoy can be placed
     def add_decoy(self,rect):
-        self.decoy.append(rect)
+        self.decoy = rect
+        print "self.decoy", self.decoy
         
     def draw_decoy(self):
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
-        for rect in self.decoy:
-            x1 = canvas_width + rect[0]
-            y1 = canvas_height - rect[1]
-            x2 = canvas_width + rect[2]
-            y2 = canvas_height - rect[3]
-            self.canvas.create_rectangle([x1,y1,x2,y2], fill = 'blue')
+        x1 = canvas_width + self.decoy[0]
+        y1 = canvas_height - self.decoy[1]
+        x2 = canvas_width + self.decoy[2]
+        y2 = canvas_height - self.decoy[3]
+        if self.decoy_obj is None:
+            self.decoy_obj = self.canvas.create_rectangle([x1,y1,x2,y2], fill = 'blue')
+        else:
+            self.canvas.coords(self.decoy_obj, (x1,y1,x2,y2))
         
     def add_obstacle(self,rect):
         self.map.append(rect)

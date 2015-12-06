@@ -77,9 +77,9 @@ def main():
     rect_b2 = [-50, -140, 50, -100]  #back 2
     rect_b3 = [50, -140, 150, -100]    #back 3
     rect_b4 = [150, -140, 250, -100] #back 4
-    rect_r1 = [250, 0, 290, 100]    #right 1
+    rect_r1 = [260, -60, 300, 100]    #right 1
     rect_f1 = [-110, 98, -40, 100]    #front 1
-    rect_f2 = [40, 98, 250, 100]    #front 2
+    rect_f2 = [40, 98, 260, 100]    #front 2
     vWorld.add_obstacle(rect_l1)
     vWorld.add_obstacle(rect_l2)
     vWorld.add_obstacle(rect_b1)
@@ -91,7 +91,7 @@ def main():
     vWorld.add_obstacle(rect_f2)
     
     #create boundary for decoy box starting position
-    vWorld.add_boundary([50,0,200,90])
+    vWorld.add_boundary([50,0,170,80])
     
     #start thread to draw the virtual world
     draw_world_thread = threading.Thread(target=GUI.draw_virtual_world, args=(vWorld, prisoner, guard))
@@ -108,7 +108,7 @@ def main():
     pris_fsm.set_current("init")
   
     #start thread to monitor events in prisoner FSM
-    pris_event_thread = threading.Thread(target=pris_FSM.monitor_events,  args =(pris_fsm,))
+    pris_event_thread = threading.Thread(target=pris_FSM.monitor_events,  args =(pris_fsm, prisoner))
     pris_event_thread.daemon = True
     pris_event_thread.start()
     
@@ -117,6 +117,7 @@ def main():
     pris_fsm_thread.daemon = True
     pris_fsm_thread.start()
   
+                
     rCanvas.after(200, graphics.updateCanvas, drawQueue)
     gVars.m.mainloop()
     
