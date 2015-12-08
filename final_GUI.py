@@ -12,7 +12,7 @@ import final_draw as draw
 import time
 import Tkinter as tk 
  
-UPDATE_INTERVAL = 100
+UPDATE_INTERVAL = 100 #time to update GUI
 
 class VirtualWorldGui:
     def __init__(self, vWorld, m):

@@ -11,6 +11,9 @@ import final_config as gVars
 import math
 import time
 
+#--------------------------------------------------------------
+#helper functions
+
 #function to write to the input that controls the server.
 def write_servo_position(deg, robot):
     robot.set_io_mode(1, 0x08) #Servo control
@@ -74,6 +77,9 @@ def calc_decoy_pos(leading_deg, dist_psd):
     
     return (box_x1, box_y1, box_x2, box_y2)
 
+#--------------------------------------------------------------
+#PSD scanning function
+
 def scan(vWorld):
     print "Prisoner: Scanning for decoy!\n"
         
@@ -82,7 +88,7 @@ def scan(vWorld):
     #this creates a list of two elements. it adds new element in pos [1] and pops elem in pos[0]
     psd_list = deque(maxlen = max_len)
     
-    threshold = 140
+    threshold = 140 #max distance to look for in mm
     
     #instanciate variables
     dir = -1
@@ -104,7 +110,6 @@ def scan(vWorld):
     #define scan result list
     scan_result = []
     
-
     #scan
     while (not gVars.gQuit):
         robot = gVars.grobotList[0]
@@ -134,20 +139,20 @@ def scan(vWorld):
                 
                 #rotate to the center of the box
                 if deg > 5:
-                    write_servo_position(deg - 4,robot) #implement
+                    write_servo_position(deg - 4,robot) 
                 else:
-                    write_servo_position(0,robot) #implement
+                    write_servo_position(0,robot)
                 
                 sample_list = [] 
                 while len(sample_list) < 100:
-                    psd_value = read_psd_distance(robot) #implement
+                    psd_value = read_psd_distance(robot) 
                     mag = 255 - psd_value;
                     sample_list.append(mag)
                     psd_list.append(mag)
                     
                 #get stable sensor values
                 for i in range(0,5):
-                    psd_value = read_psd_distance(robot) #implement
+                    psd_value = read_psd_distance(robot)
                     mag = 255 - psd_value;
                     psd_list.append(mag)
                     #low pass filter the data, return deque
@@ -165,13 +170,11 @@ def scan(vWorld):
                 vWorld.add_decoy(scan_result)
                 vWorld.draw_decoy()
                 
-                #center the psd sensor
+                #rotate the psd sensor back to center
                 while deg <= 90:
                     dir = 1
                     deg = rotate_servo(deg_timer, dir, delta, deg, period, robot)[0]
                     deg_timer = rotate_servo(deg_timer, dir, delta, deg, period, robot)[1]
-                
-
                 break
             
             #handle case where no decoy is in place
@@ -179,7 +182,6 @@ def scan(vWorld):
                 print "Sorry prisoner, you're out of luck dude. There is no decoy. \n"
                 scan_result.append('no_decoy')
                 break
-                
             
         time.sleep(.001)
     

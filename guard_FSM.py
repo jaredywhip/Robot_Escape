@@ -100,9 +100,7 @@ def scan_to_trap(vWorld, guard_fsm, guard):
 def trap_to_done(guard):
   guard_behaviors.done(guard)
   print "Press exit to end the program. \n"
-  #end the program
   
-
 #--------------------------------------------------------------
 # alarm thread
 
@@ -134,7 +132,6 @@ def sound_alarm(guard, guard_fsm):
   guard.robot.set_musical_note(0)
   guard.robot.set_led(0,0)
   guard.robot.set_led(1,0)
-
 
 #--------------------------------------------------------------
 # dispatcher thread
@@ -179,4 +176,3 @@ def build_states(guard_fsm, vWorld, guard):
 
   # done state
   state_done = guard_fsm.add_state("done")
-

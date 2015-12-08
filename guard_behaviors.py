@@ -2,7 +2,7 @@
 /* =======================================================================
 Description:
 
-    This file contains functions used in the line tracing state of the guard.
+    This file contains functions used in the linetracing state of the guard.
    ========================================================================*/
 '''
 
@@ -19,7 +19,6 @@ prox_threshold = 27
 pi = 3.14159
 wheel_balance = -4
 
-
 # returns True if the prisoner (or the decoy) is detected by the guard's scan, False otherwise
 def scan(guard): 
     guard.robot.set_wheel_balance(wheel_balance)
@@ -31,17 +30,17 @@ def scan(guard):
         prox_values.append(guard.get_prox(0))
         prox_values.append(guard.get_prox(1))
         guard.move_left_slow()
-        time.sleep(.05)
+        time.sleep(.03)
     guard.stop_move()
     for i in range(1,40):
         prox_values.append(guard.get_prox(0))
         prox_values.append(guard.get_prox(1))
         guard.move_right_slow()
-        time.sleep(.05)
+        time.sleep(.03)
     guard.stop_move()
     for i in range(1,20):
         guard.move_left_slow()
-        time.sleep(.05)
+        time.sleep(.03)
     guard.stop_move()
     count_above_threshold = 0
     for prox in prox_values:
@@ -49,6 +48,7 @@ def scan(guard):
             count_above_threshold = count_above_threshold + 1
     return (count_above_threshold > 3)
 
+#function to close hallway blockade if escape detected
 def trap(guard):
     print "Guard: Attempting to trap escaping prisoner.\n"
     guard.robot.set_wheel_balance(wheel_balance)
@@ -75,20 +75,34 @@ def trap(guard):
         rfloor = guard.get_floor(1)
     guard.stop_move()
 
+#function to follow black tape line
 def linetrace(guard, vWorld):
     # assumes guard starts off facing south ish after scanning 
     guard.alert_found_pris()
     
     print "Guard: Going to check on other prisoners.\n"
+
+    #turn 90 degrees to the left to center on the line and check on other prisoners
+    lfloor_list = []
+    guard.move_left_slow()
     
-    # turn 90 degrees to the left 
-    guard.move_to_angle_left(pi/2)
+    #populate list
+    for i in range(0,11):
+        lfloor_list.append(guard.get_floor(0))
+    floor_thresh = 30
+    while not all(j < floor_thresh for j in lfloor_list[-10:]):
+        lfloor_list.append(guard.get_floor(0))
+    
+    #rotate past line to center onto line
+    while not all(j > (floor_thresh + 55) for j in lfloor_list[-10:]):
+        lfloor_list.append(guard.get_floor(0))
+    guard.stop_move()
 
     #linetrace mode on, go to T
-    guard.set_linetracer_mode_speed(6, 2)
+    guard.set_linetracer_mode_speed(6, 4)
     
     # wait for arbitrary amount of time while 'checking other cells'?
-    wait_time = random.randint(15,30)
+    wait_time = random.randint(7,20)
     print "Guard: Watching other prisoners for", wait_time, "seconds.\n"
     wait_time_str = str(wait_time)
     vWorld.add_countdown([400, 250, wait_time_str]) #timer = [xcoord, ycoord, 'time']
@@ -135,8 +149,8 @@ def linetrace(guard, vWorld):
     guard.stop_move()
         
     # line trace mode on to go back to scan prisoner
-    guard.set_linetracer_mode_speed(6, 2)
-    time.sleep(10)
+    guard.set_linetracer_mode_speed(6, 4)
+    time.sleep(7)
     # line trace mode off
     guard.set_linetracer_mode_speed(0,0)
 
@@ -147,9 +161,9 @@ def linetrace(guard, vWorld):
     # localize along x axis
     guard.localize()
 
-    # rotate left 90 degrees to face south
+    # rotate left 90 degrees to face toward prisoner
     guard.move_to_angle_left(pi)
-
+    
 def done(guard):
     guard.robot.set_led(0,0)
     guard.robot.set_led(1,0)

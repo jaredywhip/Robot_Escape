@@ -47,7 +47,7 @@ class Prisoner:
         rCanvas.bind_all('<x>', self.stop_move)
         rCanvas.pack()
             
-    # joysticking the robot 
+    #helper functions for the robot 
     def move_up(self, event=None):
         if self.gRobotList:
             robot = self.gRobotList[0]
@@ -119,20 +119,20 @@ class Prisoner:
             robot.set_wheel(0,self.vrobot.sl)
             robot.set_wheel(1,self.vrobot.sr)
             self.vrobot.t = time.time()
-            
+      
+    #steers the robot away from wall        
     def correct_left(self, prox_threshold, prev_movement):
         prox_r = self.robot.get_proximity(1)
         
         if prox_r > prox_threshold:
             self.stop_move()
-            #self.move_left()
             self.robot.set_wheel(0,-1)
-            self.robot.set_wheel(1,1) 
-            while prox_r > (prox_threshold - 8):
+            self.robot.set_wheel(1,1)
+            #wait until away from wall with hysteresis control
+            while prox_r > (prox_threshold - 13):
                 prox_r = self.robot.get_proximity(1)
                 time.sleep(.01)
             self.stop_move()
-            #getattr(self, prev_movement)
             self.move_up()
     
     def correct_right(self, prox_threshold, prev_movement):
@@ -144,13 +144,13 @@ class Prisoner:
             #self.move_left()
             self.robot.set_wheel(0,3)
             self.robot.set_wheel(1,-3) 
-            while prox_l > (prox_threshold - 8):
+            while prox_l > (prox_threshold - 13):
                 prox_l = self.robot.get_proximity(1)
                 time.sleep(.01)
             self.stop_move()
-            #getattr(self, prev_movement)
             self.move_up()
-
+    
+    #convert proximity values to distance on robot 031
     def prox_to_dist(self, prox_l, prox_r):
         #this ensures a domain error will not be thrown when using math.log in dist calcs
         if prox_l == 0 or prox_l is None:
@@ -366,6 +366,7 @@ class Prisoner:
             self.stop_move()
         
             time.sleep(.3) #pause
+            
             #initalize delta between current and desired waypoint
             curr_delt_x = wp_x - current_x
             curr_delt_y = wp_y - current_y
@@ -384,6 +385,7 @@ class Prisoner:
                     curr_delt_y = wp_y - self.vrobot.y
                     time.sleep(.001)                    
             self.stop_move()
+            
         #move backward case
         else:
             time.sleep(.5) #pause
@@ -402,13 +404,12 @@ class Prisoner:
         self.motionQueue.task_done()
         time.sleep(.3)
         
-
-    
     #this func drives the robot until a distance (input ex: queue_item = ['dist_move', dist thres, vfinal x, vfinal y, vfinal a])       
     def dist_move(self, queue_item):
         if self.robot:
             robot = self.robot
             
+            #store distance threshold given
             dist_thresh = queue_item[1]
             
             #check proximity sensors 
@@ -434,6 +435,7 @@ class Prisoner:
                     if dist_r > dist_l:
                         self.stop_move()
                         while not (dist_r - 2) < dist_l < (dist_r + 2):
+                            #turn robot
                             robot.set_wheel(0,0)
                             robot.set_wheel(1,3)
             
@@ -450,6 +452,7 @@ class Prisoner:
                     elif dist_l < dist_r:
                         self.stop_move()
                         while not (dist_l - 2) < dist_r < (dist_l + 2):
+                            #turn robot
                             robot.set_wheel(0,3)
                             robot.set_wheel(1,0)
             
@@ -463,7 +466,9 @@ class Prisoner:
                                   
                             time.sleep(0.01)
                         self.move_up()
+                        
             self.stop_move()
+            
             #localize bot
             self.vrobot.x = queue_item[2]
             self.vrobot.y = queue_item[3]
@@ -471,7 +476,6 @@ class Prisoner:
             
             self.motionQueue.task_done()
             time.sleep(.3)
-
 
     #this func localizes the robot relative to a specifed object (input ex: queue_item = ['localize', 'y-', 'F'])          
     def localize(self, queue_item):
@@ -567,7 +571,6 @@ class Prisoner:
                             ave_dist_r = sum(dist_r_list[-2:])/2
                         
                         #turn slowly and update prox variables
-                        
                         prox_l = robot.get_proximity(0)
                         prox_r = robot.get_proximity(1)
                         time.sleep(.001)
@@ -594,7 +597,6 @@ class Prisoner:
                             ave_dist_r = sum(dist_r_list[-2:])/2
                         
                         #turn slowly and update prox variables
-                        
                         prox_l = robot.get_proximity(0)
                         prox_r = robot.get_proximity(1)
                         time.sleep(.001)
@@ -614,7 +616,6 @@ class Prisoner:
                 self.motionQueue.task_done()
                 time.sleep(.3)
                 
-    
     #this function handles the input from the queue to guide the robot            
     def move_to_waypoint(self):
         #pause to allow robot to connect before beginning
@@ -623,21 +624,19 @@ class Prisoner:
             if self.gRobotList:
                 robot = self.robot
                 queue_item = self.motionQueue.get(True)
-                
+        
                 #look at queue items
                 if queue_item[0] == 'localize':
                     self.localize(queue_item)   #localize the robot
                 elif queue_item[0] == 'dist_move':
                     self.dist_move(queue_item)   #move until a certain distance from wall
                 elif queue_item[0] == 'done':
-                    self.motion_done = True
-                    
+                    self.motion_done = True 
                 else:
                     self.xy_motion(queue_item) #go to the x,y coordinate
             time.sleep(.01)
         
-        "Prisoner: Motionpath navigatied!"
-        #return True
+        "Prisoner: Motionpath navigatied!\n"
     
     #this pushes the decoy box into the target zone   
     def push_decoy(self, vWorld):
@@ -653,8 +652,8 @@ class Prisoner:
         dist_r_list = [100, 100, 100]
         
         #turn robot toward decoy boundary box
-        init_rot = p5i4                
-        current_a = self.vrobot.a        
+        init_rot = p5i4             
+        current_a = self.vrobot.a   
         curr_delt_a = init_rot - current_a
         self.move_right()  
         while abs(curr_delt_a) > .03:
@@ -687,17 +686,14 @@ class Prisoner:
                 ave_dist_r = sum(dist_r_list[-2:])/2
             
             #turn slowly and update prox variables
-            
             prox_l = robot.get_proximity(0)
             prox_r = robot.get_proximity(1)
             time.sleep(.01)
             
         self.stop_move() 
         
-        
         print "Prisoner: Decoy box located. \n"
         time.sleep(.3)
-
 
         #push box to target zone
         floor_thresh = 60
@@ -712,10 +708,10 @@ class Prisoner:
         box_y1 = self.vrobot.y - 20
         box_x2 = box_x1 + 40    #top right
         box_y2 = box_y1 + 40
-        
         decoy_pos = [box_x1, box_y1, box_x2, box_y2]
         vWorld.add_decoy(decoy_pos)
         vWorld.draw_decoy()
+        
         print "Prisoner: Decoy box moved to target zone \n"
         time.sleep(.3)
 
@@ -754,7 +750,6 @@ class Prisoner:
                 if self.vrobot.sl == -self.vrobot.sr:
                     self.vrobot.a = (self.vrobot.a + (self.vrobot.sl * del_t)/a_factor) % (p2i) #always have angle between 0 and 2pi
                     
-                    
                 #update sensors
                 prox_l = robot.get_proximity(0)
                 prox_r = robot.get_proximity(1)
@@ -780,5 +775,6 @@ class Prisoner:
                     self.vrobot.floor_r = floor_r
                 else:
                     self.vrobot.floor_r = False
+                    
             time.sleep(0.001)
                     

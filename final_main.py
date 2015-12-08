@@ -52,7 +52,6 @@ def main():
     update_pvrobot_thread.daemon = True
     update_pvrobot_thread.start()
     
-    
     #create the prisoner vitual robot 
     guard = guard_bot.Guard(comm, rCanvas)
     
@@ -90,7 +89,6 @@ def main():
     vWorld.add_obstacle(rect_lh)
     vWorld.add_obstacle(rect_rh)
     vWorld.add_obstacle(rect_slider)
-    
     
     #create boundary for decoy box starting position
     vWorld.add_boundary([50,0,170,80])
@@ -135,13 +133,13 @@ def main():
     pris_fsm_thread = threading.Thread(target=pris_fsm.run)
     pris_fsm_thread.daemon = True
     pris_fsm_thread.start()
-  
-                
+    
     rCanvas.after(200, graphics.updateCanvas, drawQueue)
     gVars.m.mainloop()
     
     print "Cleaning up"
     
+    #reset robot list and join active threads
     for robot in gVars.grobotList:
         robot.reset()
     comm.stop()

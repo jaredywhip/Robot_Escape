@@ -27,6 +27,7 @@ p3i2 = (3*3.14159)/2
 p7i4 = (7*3.14159)/4
 p2i = 2 * 3.14159
 
+#set endpoint locations
 rbox_x = 260
 lbox_x = -60
 
@@ -39,6 +40,7 @@ class Guard:
         self.vrobot = draw.virtual_robot()
         self.vrobot.time = time.time()
 
+    #helper functions for the robot 
     def set_linetracer_mode_speed(self, mode, speed):
         is_set = False
         while (not is_set):
@@ -47,7 +49,6 @@ class Guard:
                 robot = self.robot
                 robot.set_line_tracer_mode_speed(mode, speed)
                 is_set = True 
-
 
     def get_prox(self, side):
         prox = None
@@ -105,7 +106,6 @@ class Guard:
             robot.set_led(0,0)
             robot.set_led(1,0)
             robot.set_musical_note(0)
-
 
     def move_up(self, event=None):
         if self.gRobotList:
@@ -203,7 +203,7 @@ class Guard:
         noise_floor = 20 #floor ambient color - if floor is darker, set higher noise
         p_factor = 1.37 #proximity conversion - assuming linear
         d_factor = .95 #travel distance conversion (large d_factor makes vrobot slower)
-        a_factor = 14 #rotation conversion, assuming linear (large a_factor makes vrobot slower)
+        a_factor = 15.3 #rotation conversion, assuming linear (large a_factor makes vrobot slower)
         wheel_balance = -4 #value for 031. -128(L) ~ 127(R)(0: off), my hamster swerves right
 
         #wait until robot is connected
@@ -263,6 +263,5 @@ class Guard:
                     self.vrobot.floor_r = floor_r
                 else:
                     self.vrobot.floor_r = False
-            time.sleep(0.001)
                     
-
+            time.sleep(0.001)

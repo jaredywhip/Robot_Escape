@@ -7,8 +7,8 @@ Description:
    ========================================================================*/
 '''
 
-grobotList = []
-gQuit = False
-gMaxRobotNum = 2; # max number of robots to control
+grobotList = [] #list of all connected robots
+gQuit = False   #set to True when exit is pressed
+gMaxRobotNum = 2; #max number of robots to control
 m = None #root tkinter window
 

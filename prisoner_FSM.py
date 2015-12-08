@@ -80,7 +80,9 @@ def init_to_scan(vWorld, pris_fsm, prisoner, guard_fsm):
     scan_result = pris_scan.scan(vWorld)
     time.sleep(.01)
   
-  time.sleep(1)
+  time.sleep(1) #pause
+  
+  #store scan result
   pris_fsm.states["scan"].add_return_vars(scan_result)
     
   #transition to next state
@@ -111,6 +113,7 @@ def scan_to_path(vWorld, pris_fsm, prisoner, guard_fsm):
     time.sleep(.01)
       
   time.sleep(4) #pause to let guard leave
+  
   print "Prisoner: Let's try to trick the guard with a decoy.\n"
   
   #start a thread to navigate the set path
@@ -118,23 +121,27 @@ def scan_to_path(vWorld, pris_fsm, prisoner, guard_fsm):
   waypoint_thread.daemon = True
   waypoint_thread.start()
   
-#push box to 
+#push decoy box to target zone
 def path_to_push(vWorld, pris_fsm, prisoner, guard_fsm):
   prisoner.push_decoy(vWorld)
   pris_fsm.pris_event_queue.put(Event("escape"))
-  
+
+#sneak out the back hallway
 def push_to_escape(vWorld, pris_fsm, prisoner, guard_fsm):
-  pris_escape.escape(vWorld, pris_fsm, prisoner)
+  pris_escape.escape(vWorld, pris_fsm, prisoner, guard_fsm)
   
 def path_to_fail(vWorld, pris_fsm, prisoner, guard_fsm):
+  print "Prisoner: Oh no!! The guard has foiled my plan.\n"
   prisoner.stop_move()
   prisoner.fail_song()
   
 def push_to_fail(vWorld, pris_fsm, prisoner, guard_fsm):
+  print "Prisoner: Oh no!! The guard has foiled my plan.\n"
   prisoner.stop_move()
   prisoner.fail_song()
   
 def escape_to_fail(vWorld, pris_fsm, prisoner, guard_fsm):
+  print "Prisoner: Oh no!! The guard has foiled my plan.\n"
   prisoner.stop_move()
   prisoner.fail_song()
 
@@ -155,6 +162,7 @@ def monitor_events(pris_fsm, prisoner, guard_fsm):
   start = True
   motionpath_done = False
   fail = False
+  
   while not gVars.gQuit:
     #when the correct number of hamsters are connect start program
     if start == True and len(gVars.grobotList) == gVars.gMaxRobotNum:
@@ -168,7 +176,6 @@ def monitor_events(pris_fsm, prisoner, guard_fsm):
       
     #check to see if guard detected escape
     if guard_fsm.currentState == 'trap' or guard_fsm.currentState == 'done' and fail == False:
-      print "Prisoner: Oh no!! The guard has foiled my plan.\n"
       pris_fsm.pris_event_queue.put(Event("fail"))
       fail = True
 
@@ -209,7 +216,10 @@ def build_states(pris_fsm, vWorld, prisoner, guard_fsm):
   state_escape.add_transition("end", escape_to_end)
   state_escape.add_transition("fail", escape_to_fail)
   state_escape.add_callback_args((vWorld, pris_fsm, prisoner, guard_fsm))
-  state_escape.add_return_vars([])  
+  state_escape.add_return_vars([])
+  
+  #fail state
+  state_end = pris_fsm.add_state("fail")
   
   #end state
   state_end = pris_fsm.add_state("end")

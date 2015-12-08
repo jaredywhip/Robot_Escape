@@ -89,7 +89,7 @@ class virtual_world:
             y2 = canvas_height - rect[3]
             self.canvas.create_rectangle([x1,y1,x2,y2], dash=(3,5))
             
-    #define a bounding box where the decoy can be placed
+    #define a decoy box
     def add_decoy(self,rect):
         self.decoy = rect
         
@@ -105,7 +105,7 @@ class virtual_world:
         else:
             self.canvas.coords(self.decoy_obj, (x1,y1,x2,y2))
         
-    #define a bounding box where the decoy can be placed
+    #create a countdown timer for the guard
     def add_countdown(self,timer): #timer = [xcoord, ycoord, 'time']
         self.countdown = timer
 
@@ -152,7 +152,6 @@ class virtual_world:
             wp_num += 1
 
     # Draw functions for prisoner robot
-    
     def draw_pris_robot(self):
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
@@ -239,7 +238,6 @@ class virtual_world:
             self.canvas.itemconfig(floor_id, outline = "white", fill="white")
 
     # Draw functions for guard robot
-
     def draw_guard_robot(self):
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
