@@ -75,7 +75,7 @@ def calc_decoy_pos(leading_deg, dist_psd):
     return (box_x1, box_y1, box_x2, box_y2)
 
 def scan(vWorld):
-    print "Scanning for decoy!"
+    print "Prisoner: Scanning for decoy!\n"
         
     #set max length of data that will be low pass filtered
     max_len = 5

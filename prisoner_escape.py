@@ -102,6 +102,6 @@ def escape(vWorld,pris_fsm, prisoner):
     prisoner.vrobot.y = 210
     prisoner.vrobot.a = 0
     
-    print "Prisoner: Haha! I fooled the gaurd and escaped!"
+    print "Prisoner: Haha! I fooled the gaurd and escaped! \n"
     prisoner.celebrate_song()
     

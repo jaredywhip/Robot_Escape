@@ -73,14 +73,13 @@ class EventFsm:
 
 def init_to_scan(vWorld, guard_fsm, guard):
   prisoner_detected = guard_behaviors.scan(guard)
-  print "guard current state", guard_fsm.currentState
   if (prisoner_detected):
     guard_fsm.guard_event_queue.put(Event("linetrace"))
   else:
     guard_fsm.guard_event_queue.put(Event("trap"))
   
 def scan_to_linetrace(vWorld, guard_fsm, guard):
-  guard_behaviors.linetrace(guard)
+  guard_behaviors.linetrace(guard, vWorld)
   guard_fsm.guard_event_queue.put(Event("scan"))
 
 def linetrace_to_scan(vWorld, guard_fsm, guard):
@@ -100,7 +99,7 @@ def scan_to_trap(vWorld, guard_fsm, guard):
 
 def trap_to_done(guard):
   guard_behaviors.done(guard)
-  print "Press exit to end the program."
+  print "Press exit to end the program. \n"
   #end the program
   
 

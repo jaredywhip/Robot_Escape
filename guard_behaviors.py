@@ -75,7 +75,7 @@ def trap(guard):
         rfloor = guard.get_floor(1)
     guard.stop_move()
 
-def linetrace(guard):
+def linetrace(guard, vWorld):
     # assumes guard starts off facing south ish after scanning 
     guard.alert_found_pris()
     
@@ -90,8 +90,23 @@ def linetrace(guard):
     # wait for arbitrary amount of time while 'checking other cells'?
     wait_time = random.randint(15,30)
     print "Guard: Watching other prisoners for", wait_time, "seconds.\n"
-    time.sleep(wait_time)
-
+    wait_time_str = str(wait_time)
+    vWorld.add_countdown([400, 250, wait_time_str]) #timer = [xcoord, ycoord, 'time']
+    vWorld.draw_countdown()
+    
+    #create a countdown timer in GUI
+    countdown_timer = time.time() + wait_time
+    while time.time() < countdown_timer:
+        timer = countdown_timer - time.time()
+        timer_str = str(int(timer))
+        vWorld.add_countdown([400, 250, timer_str]) #timer = [xcoord, ycoord, 'time']
+        vWorld.draw_countdown()
+        time.sleep(1)
+    
+    #set GUI value to zero
+    vWorld.add_countdown([400, 250, '0']) #timer = [xcoord, ycoord, 'time']
+    vWorld.draw_countdown()
+    
     #line trace mode off
     guard.set_linetracer_mode_speed(0,0)
     
@@ -139,4 +154,4 @@ def done(guard):
     guard.robot.set_led(0,0)
     guard.robot.set_led(1,0)
     guard.robot.set_musical_note(0)
-    print "Done"
+    print "Hallway secured. \n"

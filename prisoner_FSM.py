@@ -95,8 +95,6 @@ def scan_to_path(vWorld, pris_fsm, prisoner, guard_fsm):
   #calculate motionpath based on box position
   prisoner.get_motionpath(vWorld, pris_fsm.states["scan"].return_vars)
   
-  print "guard current state", guard_fsm.currentState
-  
   print "Prisoner: Waiting until guard checks other cells to make a move.\n"
   
   guard_currentState = guard_fsm.currentState
@@ -105,18 +103,14 @@ def scan_to_path(vWorld, pris_fsm, prisoner, guard_fsm):
   if not guard_currentState == 'scan':
     while not guard_currentState == 'scan':
       guard_currentState = guard_fsm.currentState
-      #print "guard current state, wait for scan loop", guard_fsm.currentState
       time.sleep(.01)
 
   #wait for guard to get out of scan state
   while guard_currentState == 'scan':
     guard_currentState = guard_fsm.currentState
-    #print "guard current state, wait for not scan loop,", guard_fsm.currentState
     time.sleep(.01)
-    
-  print "guard current state, start waypoint", guard_fsm.currentState
-  
-  time.sleep(3) #pause to let guard leave
+      
+  time.sleep(4) #pause to let guard leave
   print "Prisoner: Let's try to trick the guard with a decoy.\n"
   
   #start a thread to navigate the set path
@@ -176,7 +170,7 @@ def monitor_events(pris_fsm, prisoner, guard_fsm):
     if guard_fsm.currentState == 'trap' or guard_fsm.currentState == 'done' and fail == False:
       print "Prisoner: Oh no!! The guard has foiled my plan.\n"
       pris_fsm.pris_event_queue.put(Event("fail"))
-      fail = False
+      fail = True
 
     time.sleep(.01)
     

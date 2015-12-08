@@ -68,6 +68,8 @@ class virtual_world:
         self.boundary = []
         self.decoy = []
         self.decoy_obj = None
+        self.countdown = []
+        self.countdown_obj = None
         self.motionpath = []
         self.trace = trace #leave trace of robot
         self.prox_dots = prox_dots # draw obstacles detected as dots on map
@@ -90,7 +92,6 @@ class virtual_world:
     #define a bounding box where the decoy can be placed
     def add_decoy(self,rect):
         self.decoy = rect
-        print "self.decoy", self.decoy
         
     def draw_decoy(self):
         canvas_width = self.canvas_width
@@ -103,6 +104,21 @@ class virtual_world:
             self.decoy_obj = self.canvas.create_rectangle([x1,y1,x2,y2], fill = 'blue')
         else:
             self.canvas.coords(self.decoy_obj, (x1,y1,x2,y2))
+        
+    #define a bounding box where the decoy can be placed
+    def add_countdown(self,timer): #timer = [xcoord, ycoord, 'time']
+        self.countdown = timer
+
+    def draw_countdown(self):
+        canvas_width = self.canvas_width
+        canvas_height = self.canvas_height
+        x = canvas_width + self.countdown[0]
+        y = canvas_height - self.countdown[1]
+        if self.countdown_obj is None:
+            self.canvas.create_text(x, y - 27 , font=("Purisa"), text= 'Time Until Guard Returns:')
+            self.countdown_obj = self.canvas.create_text(x, y, font=("Purisa", 40), fill = 'cyan', text=self.countdown[2])
+        else:
+            self.canvas.itemconfig(self.countdown_obj, text = self.countdown[2])
         
     def add_obstacle(self,rect):
         self.map.append(rect)

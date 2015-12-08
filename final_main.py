@@ -104,7 +104,7 @@ def main():
     
     #create FSM for guard
     guard_fsm = guard_FSM.EventFsm()
-    print "created the guard state machine"
+    print "Guard: Created the guard state machine. \n"
     guard_FSM.build_states(guard_fsm, vWorld, guard)
     guard_fsm.set_start("init")
     guard_fsm.set_current("init")
@@ -121,7 +121,7 @@ def main():
     
     #create FSM for prisoner
     pris_fsm = pris_FSM.EventFsm()
-    print "created the prisoner state machine"
+    print "Prisoner: Ceated the prisoner state machine. \n"
     pris_FSM.build_states(pris_fsm, vWorld, prisoner, guard_fsm)
     pris_fsm.set_start("init")
     pris_fsm.set_current("init")
