@@ -56,6 +56,15 @@ class Prisoner:
             robot.set_wheel(0,self.vrobot.sl)
             robot.set_wheel(1,self.vrobot.sr)
             self.vrobot.t = time.time()
+            
+    def move_up_fast(self, event=None):
+        if self.gRobotList:
+            robot = self.gRobotList[0]
+            self.vrobot.sl = 30
+            self.vrobot.sr = 30 
+            robot.set_wheel(0,self.vrobot.sl)
+            robot.set_wheel(1,self.vrobot.sr)
+            self.vrobot.t = time.time()
 
     def move_down(self, event=None):
         if self.gRobotList:   
@@ -165,13 +174,40 @@ class Prisoner:
         if left_floor < floor_thresh and right_floor < floor_thresh:
             return True
             
-    def celebrate_music(self):
+    def celebrate_song(self):
         if self.gRobotList: 
-            robot = self.gRobotList[0]
-            robot.set_musical_note(80)
+            robot = self.robot
+            robot.set_led(0,6)
+            robot.set_led(1,6)
+            robot.set_musical_note(16) #C
+            time.sleep(.5)
+            robot.set_musical_note(18) #D
+            time.sleep(.5)
+            robot.set_musical_note(20) #E
+            time.sleep(.5)
+            robot.set_musical_note(21) #F
+            time.sleep(.5)
+            robot.set_musical_note(23) #G
+            time.sleep(.5)
+            robot.set_musical_note(25) #A
+            time.sleep(.5)
+            robot.set_musical_note(27) #B
+            time.sleep(.5)
+            robot.set_musical_note(28) #C
+            time.sleep(2)
+            robot.set_musical_note(0)
+
+    def fail_song(self):
+        if self.gRobotList: 
+            robot = self.robot
+            robot.set_led(0,1)
+            robot.set_led(1,1)
+            robot.set_musical_note(17) #Db
             time.sleep(.7)
-            robot.set_musical_note(100)
+            robot.set_musical_note(16) #C
             time.sleep(.7)
+            robot.set_musical_note(9) #F
+            time.sleep(1.4)
             robot.set_musical_note(0)
     
     #this func calculates a motionpath for the robot

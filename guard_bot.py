@@ -203,7 +203,7 @@ class Guard:
         noise_floor = 20 #floor ambient color - if floor is darker, set higher noise
         p_factor = 1.37 #proximity conversion - assuming linear
         d_factor = .95 #travel distance conversion (large d_factor makes vrobot slower)
-        a_factor = 15.6 #rotation conversion, assuming linear (large a_factor makes vrobot slower)
+        a_factor = 14 #rotation conversion, assuming linear (large a_factor makes vrobot slower)
         wheel_balance = -4 #value for 031. -128(L) ~ 127(R)(0: off), my hamster swerves right
 
         #wait until robot is connected

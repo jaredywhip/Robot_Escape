@@ -44,8 +44,6 @@ def move_to_angle_right(prisoner, rot_ang):
     prisoner.stop_move()
 
 def escape(vWorld,pris_fsm, prisoner):
-    
-    print "in escape file, pris x", prisoner.vrobot.x
     robot = prisoner.robot
     
     #back up robot
@@ -74,16 +72,16 @@ def escape(vWorld,pris_fsm, prisoner):
     # make sure the robot doesn't go out of bounds
     floor_thresh = 50
     
-    prisoner.move_up()
+    prisoner.move_up_fast()
     while not prisoner.check_line(floor_thresh):
         time.sleep(0.001)
     prisoner.stop_move()
     
-    #localize
-    prisoner.vrobot.x = -190
+    #localize in hallway
+    prisoner.vrobot.x = -200
     prisoner.vrobot.y = -69
     prisoner.vrobot.a = p3i2
-    
+
     
     #turn robot to align toward hallway exit
     move_to_angle_right(prisoner,0)
@@ -91,12 +89,19 @@ def escape(vWorld,pris_fsm, prisoner):
     time.sleep(.3)
     
     #drive the robot to final target
-    prisoner.move_up()
-    prox_thresh = 60
+    prisoner.move_up_fast()
+    prox_thresh = 50
     while not prisoner.check_line(floor_thresh):
         prisoner.correct_right(prox_thresh,'move_up')
         prisoner.correct_left(prox_thresh,'move_up')
         time.sleep(0.001)
     prisoner.stop_move()
     
-    print "escaped!"
+        #localize in hallway
+    prisoner.vrobot.x = -205
+    prisoner.vrobot.y = 210
+    prisoner.vrobot.a = 0
+    
+    print "Prisoner: Haha! I fooled the gaurd and escaped!"
+    prisoner.celebrate_song()
+    

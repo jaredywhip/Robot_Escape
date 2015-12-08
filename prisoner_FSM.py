@@ -64,7 +64,6 @@ class EventFsm:
       while not gVars.gQuit:
         if self.pris_event_queue:
           event = self.pris_event_queue.get()
-          print 'event', event.name
           if event.name in self.states[self.currentState].transitions:
             self.states[self.currentState].transitions[event.name](*self.states[self.currentState].callback_args)
             self.set_current(event.name)
@@ -75,8 +74,6 @@ class EventFsm:
 
 #begin scanning with the PSD sensor
 def init_to_scan(vWorld, pris_fsm, prisoner, guard_fsm):
-  print "transition init -> scan"
-    
   #start scanning
   scan_result = []
   while len(scan_result) == 0: #state update comes after function call
@@ -85,7 +82,6 @@ def init_to_scan(vWorld, pris_fsm, prisoner, guard_fsm):
   
   time.sleep(1)
   pris_fsm.states["scan"].add_return_vars(scan_result)
-  print 'scan result', pris_fsm.states["scan"].return_vars[0]
     
   #transition to next state
   if not (pris_fsm.states["scan"].return_vars[0] == 'no_decoy'):
@@ -109,13 +105,18 @@ def scan_to_path(vWorld, pris_fsm, prisoner, guard_fsm):
   if not guard_currentState == 'scan':
     while not guard_currentState == 'scan':
       guard_currentState = guard_fsm.currentState
+      #print "guard current state, wait for scan loop", guard_fsm.currentState
       time.sleep(.01)
 
   #wait for guard to get out of scan state
   while guard_currentState == 'scan':
     guard_currentState = guard_fsm.currentState
+    #print "guard current state, wait for not scan loop,", guard_fsm.currentState
     time.sleep(.01)
     
+  print "guard current state, start waypoint", guard_fsm.currentState
+  
+  time.sleep(3) #pause to let guard leave
   print "Prisoner: Let's try to trick the guard with a decoy.\n"
   
   #start a thread to navigate the set path
@@ -130,25 +131,36 @@ def path_to_push(vWorld, pris_fsm, prisoner, guard_fsm):
   
 def push_to_escape(vWorld, pris_fsm, prisoner, guard_fsm):
   pris_escape.escape(vWorld, pris_fsm, prisoner)
+  
+def path_to_fail(vWorld, pris_fsm, prisoner, guard_fsm):
+  prisoner.stop_move()
+  prisoner.fail_song()
+  
+def push_to_fail(vWorld, pris_fsm, prisoner, guard_fsm):
+  prisoner.stop_move()
+  prisoner.fail_song()
+  
+def escape_to_fail(vWorld, pris_fsm, prisoner, guard_fsm):
+  prisoner.stop_move()
+  prisoner.fail_song()
 
 def scan_to_end(vWorld,pris_fsm, prisoner, guard_fsm):
-  print "Place a decoy in the boundary zone and restart program."
-
+  prisoner.stop_move()
+  print "Place a decoy in the boundary zone and restart program.\n"
 
 def escape_to_end(vWorld,pris_fsm, prisoner, guard_fsm):
-  
-  #end the program
-  gVars.m.destroy()
-  gVars.gQuit = True
-  print "Exit"
+  prisoner.stop_move()
+  print "Press exit to end the program.\n"
+
 
 #--------------------------------------------------------------
 #dispatcher thread
 
 #thread to monitor events
-def monitor_events(pris_fsm, prisoner, guard_fsm:
+def monitor_events(pris_fsm, prisoner, guard_fsm):
   start = True
   motionpath_done = False
+  fail = False
   while not gVars.gQuit:
     #when the correct number of hamsters are connect start program
     if start == True and len(gVars.grobotList) == gVars.gMaxRobotNum:
@@ -157,9 +169,14 @@ def monitor_events(pris_fsm, prisoner, guard_fsm:
       
     #check to see if motionpath has been compeleted
     if prisoner.motion_done == True:      
-      print"adding push to event queue because motionpath done"
       pris_fsm.pris_event_queue.put(Event("push"))
       prisoner.motion_done = False
+      
+    #check to see if guard detected escape
+    if guard_fsm.currentState == 'trap' or guard_fsm.currentState == 'done' and fail == False:
+      print "Prisoner: Oh no!! The guard has foiled my plan.\n"
+      pris_fsm.pris_event_queue.put(Event("fail"))
+      fail = False
 
     time.sleep(.01)
     
@@ -182,18 +199,21 @@ def build_states(pris_fsm, vWorld, prisoner, guard_fsm):
   #navigate motionpath state
   state_path = pris_fsm.add_state("path")
   state_path.add_transition("push", path_to_push)
+  state_path.add_transition("fail", path_to_fail)
   state_path.add_callback_args((vWorld, pris_fsm, prisoner, guard_fsm))
   state_path.add_return_vars([])
   
   #push the decoy box into position state
   state_push = pris_fsm.add_state("push")
   state_push.add_transition("escape", push_to_escape)
+  state_push.add_transition("fail", push_to_fail)
   state_push.add_callback_args((vWorld, pris_fsm, prisoner, guard_fsm))
   state_push.add_return_vars([])
   
   #navigate motionpath state
   state_escape = pris_fsm.add_state("escape")
   state_escape.add_transition("end", escape_to_end)
+  state_escape.add_transition("fail", escape_to_fail)
   state_escape.add_callback_args((vWorld, pris_fsm, prisoner, guard_fsm))
   state_escape.add_return_vars([])  
   

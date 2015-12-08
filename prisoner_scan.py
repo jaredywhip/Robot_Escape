@@ -69,7 +69,9 @@ def calc_decoy_pos(leading_deg, dist_psd):
         box_y2 = box_y1 + 40
     elif box_y2 > boundary[3]:
         box_y2 = boundary[3]
-        box_y1 = box_y2 - 40    
+        box_y1 = box_y2 - 40
+
+    
     return (box_x1, box_y1, box_x2, box_y2)
 
 def scan(vWorld):
