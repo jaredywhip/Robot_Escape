@@ -11,6 +11,7 @@ import final_config as gVars
 import final_draw as draw
 import final_GUI as GUI
 import guard_bot as guard_bot
+import guard_FSM as guard_FSM
 from HamsterAPI.comm_ble import RobotComm
 import prisoner_bot as pris_bot
 import prisoner_FSM as pris_FSM
@@ -71,24 +72,25 @@ def main():
     vWorld = draw.virtual_world(drawQueue, prisoner.vrobot, guard.vrobot, rCanvas, canvas_width, canvas_height)
     
     #objects in the world
-    rect_l1 = [-150, 0, -110, 100]  #left 1
-    rect_l2 = [-150, -100, -110, 0]  #left 2
-    rect_b1 = [-150, -140, -50, -100]  #back 1
-    rect_b2 = [-50, -140, 50, -100]  #back 2
-    rect_b3 = [50, -140, 150, -100]    #back 3
-    rect_b4 = [150, -140, 250, -100] #back 4
-    rect_r1 = [260, -60, 300, 100]    #right 1
-    rect_f1 = [-110, 98, -40, 100]    #front 1
-    rect_f2 = [40, 98, 260, 100]    #front 2
+    rect_slider = [-150, 160, -60, 120]
+    rect_l1 = [-150, 0, -110, 120]  #left 1
+    rect_l2 = [-112, -100, -110, -5]  #left 2 (paper flap)
+    rect_b1 = [-250, -105, 265, -100]  #back wall
+    rect_r1 = [260, -100, 265, 200]    #right 1
+    rect_f1 = [-110, 100, -40, 105]    #front 1
+    rect_f2 = [40, 100, 260, 105]    #front 2
+    rect_lh = [-250, -100, -245, 210] #left hallway wall
+    rect_rh = [-150, 160, -145, 210]
     vWorld.add_obstacle(rect_l1)
     vWorld.add_obstacle(rect_l2)
     vWorld.add_obstacle(rect_b1)
-    vWorld.add_obstacle(rect_b2)
-    vWorld.add_obstacle(rect_b3)
-    vWorld.add_obstacle(rect_b4)
     vWorld.add_obstacle(rect_r1)
     vWorld.add_obstacle(rect_f1)
     vWorld.add_obstacle(rect_f2)
+    vWorld.add_obstacle(rect_lh)
+    vWorld.add_obstacle(rect_rh)
+    vWorld.add_obstacle(rect_slider)
+    
     
     #create boundary for decoy box starting position
     vWorld.add_boundary([50,0,170,80])
@@ -100,15 +102,32 @@ def main():
   
     graphics = GUI.VirtualWorldGui(vWorld, gVars.m)
     
+    #create FSM for guard
+    guard_fsm = guard_FSM.EventFsm()
+    print "created the guard state machine"
+    guard_FSM.build_states(guard_fsm, vWorld, guard)
+    guard_fsm.set_start("init")
+    guard_fsm.set_current("init")
+    
+    #start thread to monitor events in guard FSM
+    guard_event_thread = threading.Thread(target=guard_FSM.monitor_events,  args=(guard_fsm,))
+    guard_event_thread.daemon = True
+    guard_event_thread.start()
+    
+    #start thread to run guard FSM
+    guard_fsm_thread = threading.Thread(target=guard_fsm.run)
+    guard_fsm_thread.daemon = True
+    guard_fsm_thread.start()
+    
     #create FSM for prisoner
     pris_fsm = pris_FSM.EventFsm()
     print "created the prisoner state machine"
-    pris_FSM.build_states(pris_fsm, vWorld, prisoner)
+    pris_FSM.build_states(pris_fsm, vWorld, prisoner, guard_fsm)
     pris_fsm.set_start("init")
     pris_fsm.set_current("init")
   
     #start thread to monitor events in prisoner FSM
-    pris_event_thread = threading.Thread(target=pris_FSM.monitor_events,  args =(pris_fsm, prisoner))
+    pris_event_thread = threading.Thread(target=pris_FSM.monitor_events,  args =(pris_fsm, prisoner, guard_fsm))
     pris_event_thread.daemon = True
     pris_event_thread.start()
     
@@ -131,6 +150,10 @@ def main():
         pris_event_thread.join(.5)
     if pris_fsm_thread.isAlive():    
         pris_fsm_thread.join(.5)
+    if guard_event_thread.isAlive():
+        guard_event_thread.join(.5)
+    if guard_fsm_thread.isAlive():    
+        guard_fsm_thread.join(.5) 
     if draw_world_thread.isAlive():
         draw_world_thread.join(.5)
 

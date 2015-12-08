@@ -74,7 +74,6 @@ class Prisoner:
             robot.set_wheel(0,self.vrobot.sl)
             robot.set_wheel(1,self.vrobot.sr)
             self.vrobot.t = time.time()
-            print "vrobot a" , self.vrobot.a
 
     def move_right(self, event=None):
         if self.gRobotList: 
@@ -117,38 +116,31 @@ class Prisoner:
         
         if prox_r > prox_threshold:
             self.stop_move()
-            print "correcting left, r prox value" , prox_r
             #self.move_left()
             self.robot.set_wheel(0,-1)
             self.robot.set_wheel(1,1) 
-            while prox_r > (prox_threshold - 5):
+            while prox_r > (prox_threshold - 8):
                 prox_r = self.robot.get_proximity(1)
                 time.sleep(.01)
-            print 'movement corrected'
             self.stop_move()
-            print 'stop move \n'
             #getattr(self, prev_movement)
             self.move_up()
-            print 'return to prev movement \n'
     
     def correct_right(self, prox_threshold, prev_movement):
         prox_l = self.robot.get_proximity(0)
+        prox_r = self.robot.get_proximity(1)
         
-        if prox_l > prox_threshold:
+        if prox_l > prox_threshold and prox_r < prox_threshold:
             self.stop_move()
-            print "correcting left, l prox value" , prox_l
             #self.move_left()
-            self.robot.set_wheel(0,1)
-            self.robot.set_wheel(1,-1) 
-            while prox_l > (prox_threshold - 5):
+            self.robot.set_wheel(0,3)
+            self.robot.set_wheel(1,-3) 
+            while prox_l > (prox_threshold - 8):
                 prox_l = self.robot.get_proximity(1)
                 time.sleep(.01)
-            print 'movement corrected'
             self.stop_move()
-            print 'stop move \n'
             #getattr(self, prev_movement)
             self.move_up()
-            print 'return to prev movement \n'
 
     def prox_to_dist(self, prox_l, prox_r):
         #this ensures a domain error will not be thrown when using math.log in dist calcs
@@ -185,7 +177,7 @@ class Prisoner:
     #this func calculates a motionpath for the robot
     def get_motionpath(self, vWorld, decoy_corns):
         self.vWorld = vWorld
-        print "calculating motion path"
+        print "Prisoner: Calculating motion path.\n"
         
         #calc final waypoint
         decoy_edgex = decoy_corns[2]    #right edge of decoy box
@@ -261,12 +253,10 @@ class Prisoner:
         self.motionQueue.put(['localize', 'x+', 'R']) #moves to waypoint three on map
         self.motionQueue.put(['done']) #end motionpath and return True
         
-        print "Motion path calculated."
-    
+            
     #this func moves the robot to a specified waypoint (input ex: waypoint1 = [150,0])
     def xy_motion(self,waypoint):
         
-        print "waypoint" , waypoint
         #set target waypoints
         wp_x = waypoint[0]
         wp_y = waypoint[1]
@@ -276,10 +266,6 @@ class Prisoner:
         current_y = self.vrobot.y
         current_a = self.vrobot.a % (p2i) # value aways zero to 2pi
         prox_threshold = 65
-
-        
-        #print to terminal
-        print "Moving to waypoint(", wp_x,"," , wp_y, ").\n\n"
 
         #calc x and y distance from current to waypoint
         delt_x = round(wp_x - current_x, 2)
@@ -304,17 +290,13 @@ class Prisoner:
                 wp_a = current_a                
         elif delt_x > 0:
             theta = math.atan(delt_y/delt_x)
-            print 'theta ', theta
             wp_a = pi2 - theta
         elif delt_x < 0:
             theta = math.atan(delt_y/delt_x)
-            print 'theta ', theta
             wp_a = p3i2 - theta
                 
         wp_a = round(wp_a, 2) #round to two decimal places
-        
-        print "rounded wp_a", wp_a
-            
+                    
         curr_delt_a = wp_a - current_a
         delt_a = curr_delt_a
         
@@ -327,16 +309,7 @@ class Prisoner:
             wp_a_test = wp_a + p2i              
             
         delt_a_test = wp_a_test - current_a_test
-        
-        print "abs delt a test ", abs(delt_a_test)
-        
-        
-        print "waypoint angle" , wp_a
-        print 'current ang', current_a
-        print "delta_a" ,delt_a
-        
-        #wp_a = wp_a % (2 * 3.1415) # value aways zero to 2pi
-        
+                
         if not wp_a == 3.14:   #when wp_a is 3.14 the waypoint is directly behind the bot, handled below
             
             #turn robot to the angle
@@ -356,34 +329,27 @@ class Prisoner:
                 time.sleep(.001)
             self.stop_move()
         
-            time.sleep(.5) #pause
+            time.sleep(.3) #pause
             #initalize delta between current and desired waypoint
             curr_delt_x = wp_x - current_x
             curr_delt_y = wp_y - current_y
-            
-            #wp_a = wp_a % (2 * 3.1415) # value aways zero to 2pi
-            
+                        
             #drive to x, y waypoint coordinates. Condition looks for sign change in delta
             if p7i4 <= wp_a <= p2i or 0 <= wp_a <= pi4 or p3i4 <= wp_a <= p5i4: #if driving mainly up or down
                 self.move_up()
                 while numpy.sign(curr_delt_y) == numpy.sign(delt_y):
                     curr_delt_x = wp_x - self.vrobot.x
                     curr_delt_y = wp_y - self.vrobot.y
-                    #self.correct_left(prox_threshold, 'move_up')
-                    #self.correct_right(prox_threshold, 'move_up')
                     time.sleep(.001)
             elif pi4 < wp_a < p3i4 or p5i4 <= wp_a <= p7i4: #if driving mainly left or right
                 self.move_up()
                 while numpy.sign(curr_delt_x) == numpy.sign(delt_x):
                     curr_delt_x = wp_x - self.vrobot.x
                     curr_delt_y = wp_y - self.vrobot.y
-                    #self.correct_left(prox_threshold,'move_up')
-                    #self.correct_right(prox_threshold, 'move_up')
                     time.sleep(.001)                    
             self.stop_move()
         #move backward case
         else:
-            print "moving backward to waypoint"
             time.sleep(.5) #pause
             #initalize delta between current and desired waypoint
             curr_delt_x = wp_x - current_x
@@ -398,7 +364,7 @@ class Prisoner:
             self.stop_move()
             
         self.motionQueue.task_done()
-        time.sleep(1) #pause
+        time.sleep(.3)
         
 
     
@@ -408,9 +374,6 @@ class Prisoner:
             robot = self.robot
             
             dist_thresh = queue_item[1]
-            
-            #output update to terminal 
-            print "Driving until robot is ", dist_thresh, " mm from wall.\n\n"
             
             #check proximity sensors 
             prox_l = robot.get_proximity(0)
@@ -464,17 +427,14 @@ class Prisoner:
                                   
                             time.sleep(0.01)
                         self.move_up()
-            print 'dist l, dist r', dist_l, dist_r
             self.stop_move()
             #localize bot
             self.vrobot.x = queue_item[2]
             self.vrobot.y = queue_item[3]
             self.vrobot.a = queue_item[4]
             
-            time.sleep(1)
-            print 'Finished move to distance \n\n\n'
             self.motionQueue.task_done()
-            time.sleep(1) #pause
+            time.sleep(.3)
 
 
     #this func localizes the robot relative to a specifed object (input ex: queue_item = ['localize', 'y-', 'F'])          
@@ -488,10 +448,6 @@ class Prisoner:
                 
                 loc_axis = queue_item[1]
                 loc_obj = queue_item[2]
-                
-                
-                #print update to terminal
-                print "Localizing robot relative to ", loc_obj, ".\n\n"
                 
                 #define angles for given axis
                 if loc_axis == 'x+':
@@ -533,21 +489,8 @@ class Prisoner:
                 while abs(curr_delt_a) > .03:
                     curr_delt_a = loc_angle - current_a
                     current_a = self.vrobot.a
-                    print "current_a", current_a
-                    print "curr_delt_a", abs(curr_delt_a)
                     time.sleep(.01)
                 self.stop_move()                
-                
-                ##turn robot to the angle
-                #while abs(curr_delt_a) > .2:
-                #    curr_delt_a = loc_angle - current_a
-                #    if delt_a > 0:
-                #        self.move_right()
-                #    elif delt_a < 0:
-                #        self.move_left()
-                #    current_a = self.vrobot.a % (2 * 3.1415) # value aways zero to 2pi
-                #    time.sleep(.001)
-                #self.stop_move()
                 
                 #check proximity sensors 
                 prox_l = robot.get_proximity(0)
@@ -563,12 +506,6 @@ class Prisoner:
                 tol = 1.5 #tolerance value in mm
                 max_dist = 190 #minimum value to ensure sensors are not seeing nothing
                 
-                ##handle special cases
-                #if loc_axis == 'x+' and loc_obj == 'R':
-                #    prox_l = 0    #always turns right when localizing to F
-                #    tol = 4
-                #    max_dist = 110 #make sure robot is seeing an object
-                    
                 #Turn and localize  
                 #angled to the right case
                 if prox_r <= prox_l:
@@ -637,42 +574,10 @@ class Prisoner:
                     self.vrobot.x = 260 - offset
                     self.vrobot.y = y0
                     self.vrobot.a = pi2
-
-                print "Localized!"
                 
                 self.motionQueue.task_done()
-                time.sleep(1) #pause
+                time.sleep(.3)
                 
-                
-    
-                
-    #this func drives the robot for a specified number of seconds (input ex: queue_item = ['time_move', 'x+', 4])              
-    def time_move(self, queue_item):       
-            if self.gRobotList:
-                robot = self.gRobotList[0]
-                
-                dist_axis = queue_item[1]
-                move_time = queue_item[2]
-                
-                #output update to terminal 
-                print "Driving for ", move_time, " seconds in ", dist_axis, " direction.\n\n"
-                
-                #check proximity sensors 
-                prox_l = robot.get_proximity(0)
-                prox_r = robot.get_proximity(1)
-                #move forward for set time
-                endtime = time.time() + move_time
-                while time.time() < endtime:
-                    if dist_axis == 'x+':
-                        self.move_up()
-                    elif dist_axis == 'x-':
-                        self.move_down()
-                    time.sleep(.01)   
-                    #stop         
-                    self.stop_move()
-                
-                self.motionQueue.task_done()
-                time.sleep(1) #pause
     
     #this function handles the input from the queue to guide the robot            
     def move_to_waypoint(self):
@@ -688,17 +593,14 @@ class Prisoner:
                     self.localize(queue_item)   #localize the robot
                 elif queue_item[0] == 'dist_move':
                     self.dist_move(queue_item)   #move until a certain distance from wall
-                elif queue_item[0] == 'time_move':
-                    self.time_move(queue_item)  #move for a set amount of time
                 elif queue_item[0] == 'done':
-                    print "Motionpath navigated!"
                     self.motion_done = True
                     
                 else:
                     self.xy_motion(queue_item) #go to the x,y coordinate
             time.sleep(.01)
         
-        "Motionpath navigatied! out of loop"
+        "Prisoner: Motionpath navigatied!"
         #return True
     
     #this pushes the decoy box into the target zone   
@@ -726,12 +628,11 @@ class Prisoner:
         self.vrobot.a = p5i4
         self.stop_move()            
             
-            
         #set variables
         ave_dist_l = 0
         ave_dist_r = 100   #dummy variables
         tol = 2 #tolerance value in mm
-        max_dist = 100 #minimum value to ensure sensors are not seeing nothing
+        max_dist = 75 #minimum value to ensure sensors are not seeing nothing
         
         #Turn and find decoy
         self.move_right()
@@ -754,23 +655,23 @@ class Prisoner:
             prox_l = robot.get_proximity(0)
             prox_r = robot.get_proximity(1)
             time.sleep(.01)
-            print "ave dist ", ave_dist_l, ave_dist_r
             
         self.stop_move() 
         
         
-        print "decoy box located\n\n"
-        time.sleep(2)
+        print "Prisoner: Decoy box located. \n"
+        time.sleep(.3)
 
 
-        # make sure the robot doesn't go out of bounds
+        #push box to target zone
         floor_thresh = 60
+        push_timer = time.time() + 20 #timeout if doesnt' find line
         self.move_up()
-        while not self.check_line(floor_thresh):
+        while not self.check_line(floor_thresh) and time.time() < push_timer:
             time.sleep(0.001)
         self.stop_move() 
 
-
+        #update decoy box location
         box_x1 = self.vrobot.x - 20.8 - 40 # .8 accounts for psd arm length
         box_y1 = self.vrobot.y - 20
         box_x2 = box_x1 + 40    #top right
@@ -779,12 +680,9 @@ class Prisoner:
         decoy_pos = [box_x1, box_y1, box_x2, box_y2]
         vWorld.add_decoy(decoy_pos)
         vWorld.draw_decoy()
-        print "decoy box moved to target zone \n\n"
-        time.sleep(2)
+        print "Prisoner: Decoy box moved to target zone \n"
+        time.sleep(.3)
 
-
-        
-    
     #Thread to update virtual robot based on a model of my robot
     def update_virtual_robot(self):
   

@@ -56,8 +56,6 @@ def calc_decoy_pos(leading_deg, dist_psd):
     box_x2 = x_corn + 40    #top right
     box_y2 = y_corn
     
-    print 'pre',[box_x1, box_y1, box_x2, box_y2]
-    
     #handle when box is incorrectly positioned outside of know boundary [50,0,200,90]
     boundary = [50,0,170,80]
     if box_x1 < boundary[0]:
@@ -71,10 +69,7 @@ def calc_decoy_pos(leading_deg, dist_psd):
         box_y2 = box_y1 + 40
     elif box_y2 > boundary[3]:
         box_y2 = boundary[3]
-        box_y1 = box_y2 - 40
-    
-    print 'post',[box_x1, box_y1, box_x2, box_y2]
-    
+        box_y1 = box_y2 - 40    
     return (box_x1, box_y1, box_x2, box_y2)
 
 def scan(vWorld):
@@ -98,7 +93,6 @@ def scan(vWorld):
         
     scanning_period = 6.0
     period = scanning_period/len(line_psd)*delta
-    print "scanning period: 180deg:",period, "sec"
     
     #set timer for servo
     deg_timer = time.time() + period
@@ -128,13 +122,11 @@ def scan(vWorld):
         
         #low pass filter the data, return deque
         lpf_mag = low_pass(psd_list, max_len)
-        
-        print deg, lpf_mag[max_len - 1]
-        
+                
         #detect leading edge of object
         if time.time() > stablize_timer:
             if all(val <= threshold for val in lpf_mag):
-                print 'OBJECT!'
+                print 'Prisoner: Decoy detected! \n'
                 leading_deg = deg
                 time.sleep(1)
                 
@@ -159,10 +151,9 @@ def scan(vWorld):
                     #low pass filter the data, return deque
                     lpf_mag = low_pass(psd_list, max_len)
                 
-                print "lpf psd mags" , lpf_mag                
                 #calculate distance
                 min_psd = min(psd_list)
-                leading_deg = deg + 5
+                leading_deg = deg + 4
                 dist_psd = 1.0169 * min_psd - 7.4546 #empiracle data linear fit, confidence range 60 - 180mm
                 
                 decoy_coord = calc_decoy_pos(leading_deg, dist_psd)
@@ -183,12 +174,12 @@ def scan(vWorld):
             
             #handle case where no decoy is in place
             if deg == 0 and not scan_result:
-                print "Sorry prisoner, you're out of luck dude. There is no decoy."
+                print "Sorry prisoner, you're out of luck dude. There is no decoy. \n"
                 scan_result.append('no_decoy')
                 break
                 
             
         time.sleep(.001)
     
-    print "scan complete"
+    print "Prisoner: Scan complete! \n"
     return scan_result
